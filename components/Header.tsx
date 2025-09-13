@@ -1,55 +1,70 @@
-import React from 'react'
-import { Button } from '~/common/components/ui/button'
-import { Switch } from '~/common/components/ui/switch'
-import { useTheme } from '~/common/components/ThemeProvider'
+import { Link } from "@tanstack/react-router"
+import { MenuIcon, MoonIcon } from "lucide-react"
+import { useContext } from "react"
+import { useAccount, useDisconnect } from "wagmi"
 
-interface HeaderProps {
-  onWeb3Login?: () => void
-  isWeb3Connected?: boolean
-}
+import { CurrencySwitcher } from "~/components/CurrencySwitcher"
+import { Button } from "~/components/ui/button"
+import { Toggle } from "~/components/ui/toggle"
 
-export function Header({ onWeb3Login, isWeb3Connected = false }: HeaderProps) {
-  const { theme, setTheme } = useTheme()
+// import { LoginDialog } from "./login-dialog"
 
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark')
+// import { RootDialogContext } from "./providers"
+// import { useTheme } from "./theme-provider"
+
+export const Header = () => {
+  // const { setDialogComponents, dialogComponents } =
+  //   useContext(RootDialogContext)
+  const { disconnect } = useDisconnect()
+  const { theme, setTheme } = { theme: "dark", setTheme: () => {} }
+  const { isConnected } = useAccount()
+  const isDark = theme === "dark"
+
+  const onClickLogin = () => {
+    // setDialogComponents([...dialogComponents, <LoginDialog />])
   }
 
   return (
-    <header className="flex items-center justify-between p-4 border-b bg-background">
-      {/* Logo section */}
-      <div className="flex items-center">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">I</span>
-          </div>
-          <span className="font-semibold text-lg">Intuition</span>
-        </div>
-      </div>
-
-      {/* Right section with theme toggle and web3 login */}
-      <div className="flex items-center space-x-4">
-        {/* Theme toggle */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">
-            {theme === 'dark' ? '🌙' : '☀️'}
-          </span>
-          <Switch
-            checked={theme === 'dark'}
-            onCheckedChange={toggleTheme}
-            aria-label="Toggle theme"
-          />
-        </div>
-
-        {/* Web3 Login Button */}
-        <Button
-          variant={isWeb3Connected ? 'secondary' : 'default'}
-          size="sm"
-          onClick={onWeb3Login}
-        >
-          {isWeb3Connected ? 'Connected' : 'Connect Wallet'}
+    <nav className="fixed top-0 z-50 bg-background px-4 py-2 h-16 text-foreground flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 transition-[left,width] duration-200 ease-linear">
+      <div className="flex flex-1 max-w-2xl">
+        <Button variant="ghost" size="icon">
+          <MenuIcon className="h-6 w-6" />
         </Button>
+        <Link
+          to="/"
+          className="flex gap-1 items-center font-bold text-2xl flex-shrink-0 mr-12 ml-4">
+          <img width="95" src="/revel8-white-text.png" alt="Revel8" />
+        </Link>
       </div>
-    </header>
+      <div className="text-white flex items-center flex-shrink-0">
+        <div className="currency-switcher-wrap mr-4">
+          <CurrencySwitcher />
+        </div>
+        <div className="theme-switcher flex flex-row gap-2 items-center">
+          <Toggle
+            aria-label="Toggle dark theme"
+            pressed={isDark}
+            onPressedChange={null}
+            className="data-[state=checked]:bg-white data-[state=unchecked]:bg-gray-700 hover:cursor-pointer">
+            <MoonIcon className="h-4 w-4 dark:text-white text-gray-700" />
+          </Toggle>
+        </div>
+        {isConnected ? (
+          <Button
+            onClick={disconnect}
+            variant="link"
+            className="text-foreground">
+            Log out
+          </Button>
+        ) : (
+          <Button
+            onClick={onClickLogin}
+            variant="link"
+            className="text-foreground">
+            Log in
+          </Button>
+        )}
+      </div>
+    </nav>
   )
 }
