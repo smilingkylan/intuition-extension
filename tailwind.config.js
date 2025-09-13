@@ -1,8 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./sidepanel.tsx",
-    "./popup.tsx",
+    "./src/sidepanel.tsx",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./common/components/**/*.{js,ts,jsx,tsx}",
   ],
