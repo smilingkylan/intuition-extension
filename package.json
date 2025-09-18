@@ -1,7 +1,7 @@
 {
   "name": "intuition-extension",
   "displayName": "Intuition extension",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A basic Plasmo extension.",
   "author": "Kylan Hurt",
   "scripts": {

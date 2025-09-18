@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button } from '~/common/components/ui/button'
+import { Button } from '~/components/ui/button'
 
 interface NavigationProps {
   activeRoute: string
@@ -9,9 +9,6 @@ interface NavigationProps {
 export function Navigation({ activeRoute, onRouteChange }: NavigationProps) {
   const routes = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'explore', label: 'Explore', icon: '🔍' },
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' }
   ]
 
   return (
