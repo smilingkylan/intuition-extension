@@ -46,7 +46,12 @@
       "default_path": "sidepanel.html"
     },
     "permissions": [
-      "sidePanel"
-    ]
+      "sidePanel",
+      "storage"
+    ],
+    "background": {
+      "service_worker": "background.js",
+      "type": "module"
+    }
   }
 }
