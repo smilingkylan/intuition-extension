@@ -8,7 +8,7 @@ interface NavigationProps {
 
 export function Navigation({ activeRoute, onRouteChange }: NavigationProps) {
   const routes = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'dashboard', label: 'Dashboard' },
   ]
 
   return (
@@ -21,8 +21,7 @@ export function Navigation({ activeRoute, onRouteChange }: NavigationProps) {
           className="flex items-center gap-2"
           onClick={() => onRouteChange(route.id)}
         >
-          <span className="text-sm">{route.icon}</span>
-          <span className="hidden sm:inline">{route.label}</span>
+          <span>{route.label}</span>
         </Button>
       ))}
     </nav>

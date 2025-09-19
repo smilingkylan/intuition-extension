@@ -27,19 +27,20 @@ function SidePanel() {
   }
 
   return  (
-    <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col h-screen bg-background text-foreground">
-        <Header
-        />
-
-        <Navigation
-          activeRoute={activeRoute}
-          onRouteChange={setActiveRoute}
-        />
-
-        <main className="flex-1 overflow-auto">{renderCurrentPage()}</main>
-      </div>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="system" storageKey="intuition-theme">
+      <QueryClientProvider client={queryClient}>
+        <div className="h-screen bg-background text-foreground">
+          <Header />
+          <div className="pt-16 h-full flex flex-col">
+            <Navigation
+              activeRoute={activeRoute}
+              onRouteChange={setActiveRoute}
+            />
+            <main className="flex-1 overflow-auto">{renderCurrentPage()}</main>
+          </div>
+        </div>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
 

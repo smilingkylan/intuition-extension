@@ -20,17 +20,59 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+// Storage helper functions for extension compatibility
+const storageHelper = {
+  async getItem(key: string): Promise<string | null> {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      try {
+        const result = await chrome.storage.sync.get([key])
+        return result[key] || null
+      } catch (error) {
+        console.warn('Chrome storage get failed, falling back to localStorage:', error)
+      }
+    }
+    return localStorage.getItem(key)
+  },
+
+  async setItem(key: string, value: string): Promise<void> {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      try {
+        await chrome.storage.sync.set({ [key]: value })
+      } catch (error) {
+        console.warn('Chrome storage set failed, falling back to localStorage:', error)
+        localStorage.setItem(key, value)
+      }
+    } else {
+      localStorage.setItem(key, value)
+    }
+  }
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
+  storageKey = 'intuition-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+  const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [isLoaded, setIsLoaded] = useState(false)
 
+  // Load theme from storage on mount
   useEffect(() => {
+    const loadTheme = async () => {
+      const storedTheme = await storageHelper.getItem(storageKey)
+      if (storedTheme && ['dark', 'light', 'system'].includes(storedTheme)) {
+        setTheme(storedTheme as Theme)
+      }
+      setIsLoaded(true)
+    }
+    loadTheme()
+  }, [storageKey])
+
+  // Apply theme to DOM
+  useEffect(() => {
+    if (!isLoaded) return
+
     const root = window.document.documentElement
     root.classList.remove('light', 'dark')
 
@@ -45,44 +87,30 @@ export function ThemeProvider({
     }
 
     root.classList.add(theme)
-  }, [theme])
+  }, [theme, isLoaded])
 
+  // Listen for chrome storage changes (for cross-extension synchronization)
   useEffect(() => {
-    const root = window.document.documentElement
-    const htmlColorSchemeStyleProp = root.style.getPropertyValue('color-scheme')
-
-    if (
-      htmlColorSchemeStyleProp &&
-      ['dark', 'light', 'system'].includes(htmlColorSchemeStyleProp)
-    ) {
-      setTheme(htmlColorSchemeStyleProp as Theme)
-    }
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation: MutationRecord) => {
-        const colorScheme = (mutation.target as HTMLElement).style.colorScheme
-        if (
-          colorScheme &&
-          ['dark', 'light', 'system'].includes(colorScheme) &&
-          colorScheme !== theme
-        ) {
-          setTheme(colorScheme as Theme)
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+        if (changes[storageKey]) {
+          const newTheme = changes[storageKey].newValue
+          if (newTheme && ['dark', 'light', 'system'].includes(newTheme)) {
+            setTheme(newTheme as Theme)
+          }
         }
-      })
-    })
+      }
 
-    observer.observe(root, { attributes: true })
-
-    return () => {
-      observer.disconnect()
+      chrome.storage.onChanged.addListener(handleStorageChange)
+      return () => chrome.storage.onChanged.removeListener(handleStorageChange)
     }
-  }, [theme])
+  }, [storageKey])
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    setTheme: async (newTheme: Theme) => {
+      await storageHelper.setItem(storageKey, newTheme)
+      setTheme(newTheme)
     },
   }
 
