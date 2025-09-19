@@ -10,6 +10,7 @@ import { Dashboard } from "@/src/components/pages/Dashboard"
 
 import { ThemeProvider } from "~/components/ThemeProvider"
 import { Toaster } from "~/components/ui/toaster"
+import { ModeProvider } from "./hooks/useModeContext"
 
 const queryClient = new QueryClient()
 
@@ -28,15 +29,17 @@ function SidePanel() {
 
   return  (
     <ThemeProvider defaultTheme="system" storageKey="intuition-theme">
-      <QueryClientProvider client={queryClient}>
-        <div className="h-screen bg-background text-foreground">
-          <Header />
-          <div className="pt-14 h-full flex flex-col">
-            <main className="flex-1 overflow-auto">{renderCurrentPage()}</main>
+      <ModeProvider defaultMode="explore">
+        <QueryClientProvider client={queryClient}>
+          <div className="h-screen bg-background text-foreground">
+            <Header />
+            <div className="pt-14 h-full flex flex-col">
+              <main className="flex-1 overflow-auto">{renderCurrentPage()}</main>
+            </div>
+            <Toaster />
           </div>
-          <Toaster />
-        </div>
-      </QueryClientProvider>
+        </QueryClientProvider>
+      </ModeProvider>
     </ThemeProvider>
   )
 }

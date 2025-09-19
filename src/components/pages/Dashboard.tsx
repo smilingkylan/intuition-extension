@@ -8,10 +8,12 @@ import { Progress } from '~/components/ui/progress'
 import { Skeleton } from '~/components/ui/skeleton'
 import { toast } from '~/hooks/use-toast'
 import { useTheme } from '~/components/ThemeProvider'
+import { useMode } from '../../hooks/useModeContext'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon } from 'lucide-react'
 
 export function Dashboard() {
   const { theme } = useTheme()
+  const { currentMode, isMouseMode, isExploreMode } = useMode()
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   
@@ -97,6 +99,13 @@ export function Dashboard() {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Active Theme:</span>
                 <Badge variant="secondary">{theme}</Badge>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Current Mode:</span>
+                <Badge variant={isMouseMode ? "default" : "outline"}>
+                  {currentMode === 'mouse' ? '🖱️ Mouse' : '🧭 Explore'}
+                </Badge>
               </div>
               
               <Separator />

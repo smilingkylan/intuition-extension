@@ -6,9 +6,13 @@ import { Badge } from "~/components/ui/badge"
 import { useTheme } from "~/components/ThemeProvider"
 import { useWeb3 } from "../hooks/useWeb3"
 import { toast } from "~/hooks/use-toast"
+import { ModeToggle, type Mode } from "./ModeToggle"
+import { useMode } from "../hooks/useModeContext"
 
 export const Header = () => {
   const { theme, setTheme } = useTheme()
+  const { currentMode, setMode } = useMode()
+  
   const { 
     isConnected, 
     connectedAddress, 
@@ -42,6 +46,18 @@ export const Header = () => {
 
   console.log('Rendering theme icon for:', theme) // Debug log
 
+  const handleModeChange = (mode: Mode) => {
+    setMode(mode)
+    console.log('Mode changed to:', mode)
+    // TODO: Implement mode-specific logic here
+    toast({
+      title: `Switched to ${mode === 'mouse' ? 'Mouse' : 'Explore'} mode`,
+      description: mode === 'mouse' 
+        ? 'Now tracking mouse movements' 
+        : 'Navigate and discover content',
+    })
+  }
+
   const handleConnect = async () => {
     try {
       await connectWallet()
@@ -72,8 +88,16 @@ export const Header = () => {
 
   return (
     <header className="fixed top-0 w-full z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center justify-end px-4 gap-2">
-        {/* Theme Selector - ONLY ONE ICON AT A TIME */}
+      <div className="flex h-14 items-center justify-between px-4">
+        {/* Mode Toggle - Left Side */}
+        <ModeToggle 
+          value={currentMode} 
+          onValueChange={handleModeChange}
+        />
+
+        {/* Right Side Controls */}
+        <div className="flex items-center gap-2">
+          {/* Theme Selector - ONLY ONE ICON AT A TIME */}
         <Button 
           variant="ghost" 
           size="icon" 
@@ -177,6 +201,7 @@ export const Header = () => {
             </div>
           </PopoverContent>
         </Popover>
+        </div>
       </div>
     </header>
   )
