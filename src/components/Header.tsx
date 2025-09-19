@@ -73,14 +73,6 @@ export const Header = () => {
   return (
     <header className="fixed top-0 w-full z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-end px-4 gap-2">
-        {/* Analytics Icon */}
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <TrendingUpIcon className="h-4 w-4" />
-          <span className="sr-only">Analytics</span>
-        </Button>
-
-        <Separator orientation="vertical" className="h-6" />
-
         {/* Theme Selector - ONLY ONE ICON AT A TIME */}
         <Button 
           variant="ghost" 
