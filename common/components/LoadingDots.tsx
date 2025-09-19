@@ -1,40 +1,24 @@
+import { Spinner } from './ui/spinner'
+
 interface LoadingDotsProps {
-  transitionDuration?: number
-  isVisible?: boolean
+  size?: 'small' | 'medium' | 'large'
+  className?: string
 }
 
 export default function LoadingDots({
-  transitionDuration = 300,
-  isVisible = true,
+  size = 'medium',
+  className = ''
 }: LoadingDotsProps) {
+  const sizeMap = {
+    small: 'sm',
+    medium: 'default', 
+    large: 'lg'
+  } as const
+
   return (
-    <div
-      className="flex gap-1 justify-center items-center"
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transition: `opacity ${transitionDuration}ms ease-in-out`,
-      }}
-    >
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="w-2 h-2 bg-gray-600 rounded-full"
-          style={{
-            animation: 'wave 1.2s infinite ease-in-out',
-            animationDelay: `${i * 0.2}s`,
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes wave {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-6px);
-          }
-        }
-      `}</style>
-    </div>
+    <Spinner 
+      size={sizeMap[size]} 
+      className={className}
+    />
   )
 }

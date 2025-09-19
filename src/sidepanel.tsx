@@ -5,11 +5,11 @@ import React, { useState } from "react"
 import "./sidepanel.css"
 
 import { Header } from "@/src/components/Header"
-import { Navigation } from "@/src/components/Navigation"
 import { Dashboard } from "@/src/components/pages/Dashboard"
 // import { wagmiConfig } from "@/lib/wagmi"
 
 import { ThemeProvider } from "~/components/ThemeProvider"
+import { Toaster } from "~/components/ui/toaster"
 
 const queryClient = new QueryClient()
 
@@ -31,13 +31,10 @@ function SidePanel() {
       <QueryClientProvider client={queryClient}>
         <div className="h-screen bg-background text-foreground">
           <Header />
-          <div className="pt-16 h-full flex flex-col">
-            <Navigation
-              activeRoute={activeRoute}
-              onRouteChange={setActiveRoute}
-            />
+          <div className="pt-14 h-full flex flex-col">
             <main className="flex-1 overflow-auto">{renderCurrentPage()}</main>
           </div>
+          <Toaster />
         </div>
       </QueryClientProvider>
     </ThemeProvider>
