@@ -245,11 +245,16 @@ export class Web3Service {
     return Web3Storage.getState()
   }
 
-  private getChainById(chainId: number): Chain {
+  private getChainById(chainId: number): typeof mainnet | typeof sepolia {
     switch (chainId) {
       case 1:
         return mainnet
       case 11155111:
+        return sepolia
+      case 13579:
+        // This is likely a local testnet or custom chain
+        // For now, we'll treat it as sepolia (testnet)
+        console.log(`Using sepolia config for chain ID: ${chainId}`)
         return sepolia
       default:
         console.warn(`Unknown chain ID: ${chainId}, defaulting to mainnet`)
