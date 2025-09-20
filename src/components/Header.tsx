@@ -1,4 +1,4 @@
-import { MoonIcon, SunIcon, TrendingUpIcon, MonitorIcon, UserIcon, WalletIcon, LogOutIcon, NetworkIcon } from "lucide-react"
+import { MoonIcon, SunIcon, MonitorIcon, UserIcon, WalletIcon, LogOutIcon, NetworkIcon } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"

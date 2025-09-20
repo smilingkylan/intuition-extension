@@ -24,7 +24,7 @@ export function Explore() {
   ]
 
   return (
-    <div className="p-6 space-y-6 page-content">
+    <div className="px-6 pt-8 pb-6 space-y-6 page-content">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Explore</h1>
         <p className="text-muted-foreground">
