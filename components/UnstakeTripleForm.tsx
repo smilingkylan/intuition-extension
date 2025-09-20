@@ -1,15 +1,20 @@
 import { Button } from '@/common/components/ui/button'
 import { CardContent, CardFooter } from '@/common/components/ui/card'
+import { RootDialogContext } from '@/components/providers'
 import { Loader2Icon } from 'lucide-react'
+import { useContext } from 'react'
 import { formatUnits } from 'viem'
+import { CONFIG } from '~/constants/web3'
+
+const { CURRENCY_SYMBOL } = CONFIG
 
 export const UnstakeTripleForm = ({
   triple,
   isProcessing,
   unstake,
-  pop,
   position,
 }) => {
+  const { pop } = useContext(RootDialogContext)
   const { shares } = position
   const direction = triple.term_id === position.id ? 'for' : 'against'
   // convert shares and currentSharePrice to BigInt
@@ -34,7 +39,7 @@ export const UnstakeTripleForm = ({
     <>
       <CardContent>
         <p>
-          You currently have <strong>{unstakeAmountFormatted}</strong> ETH
+          You currently have <strong>{unstakeAmountFormatted} {CURRENCY_SYMBOL}</strong> {' '}
           staked <strong>{direction}</strong> this triple.
         </p>
         <br />

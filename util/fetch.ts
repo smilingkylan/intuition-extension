@@ -3,7 +3,7 @@ import axios from 'axios'
 import { CONFIG, getChainConfigByChainId } from '~/constants'
 import { getAtomById, getTripleById, getTriplesByAtomId } from './queries'
 
-const { REVEL8_API_ORIGIN } = CONFIG
+const { REVEL8_API_ORIGIN, GRAPHQL_ORIGIN } = CONFIG
 
 export type PaginationParams = {
   page?: number
@@ -19,7 +19,7 @@ export const revel8Axios = axios.create({
 export const i7nAxios = axios.create({
   // baseURL: 'https://prod.base.intuition-api.com/v1/graphql',
   // baseURL: 'https://nginx.prod.base-sepolia.intuition.sh/v1/graphql',
-  baseURL: 'https://prod.base-sepolia.intuition-api.com/v1/graphql',
+  baseURL: GRAPHQL_ORIGIN,
 })
 
 export const graphQLQuery = async (query: string, variables: any) => {
@@ -40,7 +40,7 @@ export const fetchAtomById = async (atomId: string) => {
   const { data } = await i7nAxios.post('', {
     query: getAtomById,
     variables: {
-      atomId: Number(atomId),
+      atomId,
     },
   })
   return data
@@ -61,10 +61,11 @@ export const fetchTriplesByAtomId = async (atomId: string, variables?: any) => {
 }
 
 export const fetchTriple = async (tripleId: string) => {
+
   const response = await i7nAxios.post(``, {
     query: getTripleById,
     variables: {
-      tripleId: Number(tripleId),
+      tripleId: String(tripleId),
     },
   })
   return response

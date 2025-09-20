@@ -16,12 +16,12 @@ import {
   CompleteTripleSuccess,
 } from '~/components/CompleteTriple'
 import { CreateTripleStakeAmount } from '~/components/CreateTripleStake/CreateTripleStakeAmount'
-import { usePublicClient, useWalletClient } from 'wagmi'
-import { parseEther } from 'viem'
-import { Multivault } from '~/util/multivault'
+import { parseEther, toHex } from 'viem'
 import { CompleteTripleAddressBasic } from './CreateTripleAddressBasic'
 import { CompleteTripleNextSteps } from './CompleteTripleNextSteps'
 import { useQuery } from '@tanstack/react-query'
+import { useWeb3Config } from '@/components/multivault-provider'
+import { createAtoms, eventParseAtomCreated, createTriples, eventParseTripleCreated } from '@0xintuition/protocol'
 
 const wait = async (delayMs: number) => {
   return new Promise((resolve) => setTimeout(resolve, delayMs))
@@ -56,12 +56,7 @@ export const CompleteTripleAddressForm = ({
   preChosenAtomIds: string[]
   pop?: () => void
 }) => {
-  const publicClient = usePublicClient()
-  const { data: walletClient } = useWalletClient()
-  const MultivaultInstance = new Multivault({
-    publicClient,
-    walletClient: walletClient as any,
-  })
+  const { config } = useWeb3Config()
   const [isProcessing, setIsProcessing] = useState(false)
   const [finalData, setFinalData] = useState<any>({})
   const [atomsData, setAtomsData] = useState<any[]>([])
@@ -128,33 +123,37 @@ export const CompleteTripleAddressForm = ({
 
   const handleSubmit = async () => {
     setIsProcessing(true)
-    let atomVaultId = finalData.atomVaultId
+    let atomTermId = finalData.atomVaultId
     let atomHash = finalData.atomHash
     // Check if we need to create an atom (missing from DB AND not already created)
     if (atomsData.some((atom) => !atom) && !finalData.atomVaultId) {
-      const response = await createAtom(form.watch('name'))
-      atomVaultId = response?.vaultId?.toString()
-      atomHash = response?.hash?.toString()
-      setFinalData({ atomVaultId, atomHash })
+      const [atomCreatedEvent] = await createAtom(form.watch('name'))
+      atomTermId = atomCreatedEvent?.args.termId
+      atomHash = atomCreatedEvent?.transactionHash
+      setFinalData({ atomTermId, atomHash })
     }
     // pass in all three atomIds here
     const finalAtomIds = preChosenAtomIds.map((id) =>
-      id ? BigInt(id) : BigInt(atomVaultId)
+      id ? id : atomTermId
     )
-    await wait(2000)
-    const { vaultId: tripleVaultId, hash: tripleHash } =
-      await createTripleAndStake(finalAtomIds)
-    setFinalData({ atomVaultId, atomHash, tripleVaultId, tripleHash })
+    const [tripleCreatedEvent] = await createTripleAndStake(finalAtomIds)
+    const { args: { termId: tripleVaultId}, transactionHash: tripleHash } = tripleCreatedEvent
+
+    setFinalData({ atomVaultId: atomTermId, atomHash, tripleVaultId, tripleHash })
     setIsProcessing(false)
     setStep(CompleteTripleSteps.Success)
   }
 
-  const createAtom = async (uri: string) => {
+  const createAtom = async (address: string) => {
     try {
-      const atomResponse = await MultivaultInstance?.createAtom({
-        uri,
-        wait: true,
+      const transactionHash = await createAtoms(config!, {
+        args: [
+          [toHex(address)], // data array with one hex-encoded IPFS URI
+          [parseEther(form.watch('stakeAmount').toString())], // todo: change to BigInt?
+        ],
+        value: parseEther(form.watch('stakeAmount').toString()), // total value to send with transaction
       })
+      const atomResponse = eventParseAtomCreated(config?.publicClient, transactionHash)
       return atomResponse
     } catch (err) {
       console.error('Error creating atom or triple and staking', err)
@@ -164,24 +163,36 @@ export const CompleteTripleAddressForm = ({
       )
       setFinalData({})
       setIsProcessing(false)
+      throw err
     }
   }
 
   const createTripleAndStake = async (finalAtomIds: string[]) => {
     try {
       const stakeAmountBigInt = parseEther(form.watch('stakeAmount').toString())
-      const payload = {
-        subjectId: finalAtomIds[0],
-        predicateId: finalAtomIds[1],
-        objectId: finalAtomIds[2],
-        initialDeposit: form.watch('shouldStake') && stakeAmountBigInt,
-        wait: true,
-      }
-      const tripleResponse = await MultivaultInstance?.createTriple(payload)
+      // todo: move this to react query for caching
+      const tripleCost = await config!.publicClient.readContract({
+        address: config!.address,
+        abi: config!.abi,
+        functionName: 'getTripleCost'
+      })
+      const assetAmountWithFees = tripleCost + stakeAmountBigInt
+      const args = [
+        [finalAtomIds[0]], [finalAtomIds[1]], [finalAtomIds[2]], [assetAmountWithFees],
+      ]
+      console.log('createTripleAndStake args', args)
+      const tripleTxHash = await createTriples(config, {
+        args,
+        value: assetAmountWithFees,
+      })
+      console.log('createTripleAndStake tripleTxHash', tripleTxHash)
+      const tripleResponse = await eventParseTripleCreated(config?.publicClient, tripleTxHash)
+      console.log('createTripleAndStake tripleResponse', tripleResponse)
       return tripleResponse
     } catch (err) {
       console.error('Error creating triple and staking', err)
       setIsProcessing(false)
+      throw err
     }
   }
 

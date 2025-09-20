@@ -70,7 +70,7 @@ export const getAtoms = /* GraphQL */ `
 `
 
 export const getAtomById = /* GraphQL */ `
-  query AtomById($atomId: numeric!) {
+  query AtomById($atomId: String!) {
     atoms(where: { term: { atom_id: { _eq: $atomId } } }, limit: 1) {
       term_id
       wallet_id
@@ -130,7 +130,7 @@ export const getAtomById = /* GraphQL */ `
 
 export const getTriplesByAtomId = /* GraphQL */ `
   query TriplesByAtomId(
-    $atomId: numeric!
+    $atomId: String!
     $address: String
     $limit: Int
     $offset: Int
@@ -300,7 +300,7 @@ export const getTriplesByAtomId = /* GraphQL */ `
 `
 
 export const getTripleById = /* GraphQL */ `
-  query TripleById($tripleId: numeric!) {
+  query TripleById($tripleId: String!) {
     triples(where: { term_id: { _eq: $tripleId } }) {
       term_id
       creator_id
@@ -424,7 +424,7 @@ export const getTripleById = /* GraphQL */ `
 
 export const getTripleVaultPositions = /* GraphQL */ `
   query TripleVaultPositions(
-    $tripleId: numeric!
+    $tripleId: String!
     $orderBy: [positions_order_by!] = [{ shares: desc }]
     $limit: Int = 20
     $offset: Int = 0
@@ -468,7 +468,7 @@ export const getTripleVaultPositions = /* GraphQL */ `
 `
 
 export const fetchAtomsByIds = /* GraphQL */ `
-  query AtomsByIds($atomIds: [numeric!]!) {
+  query AtomsByIds($atomIds: [String!]!) {
     atoms(where: { term: { atom_id: { _in: $atomIds } } }) {
       term_id
       label
@@ -496,7 +496,7 @@ export const fetchAtomsByIds = /* GraphQL */ `
 
 export const getTripleSignals = /* GraphQL */ `
   query TripleSignals(
-    $tripleId: numeric!
+    $tripleId: String!
     $orderBy: [signals_order_by!] = [{ created_at: desc }]
     $limit: Int
     $offset: Int
@@ -527,7 +527,7 @@ export const getTripleSignals = /* GraphQL */ `
 `
 
 export const getRankingsWhereClause = (
-  atomIds: [number | null, number | null, number | null]
+  atomIds: [String | null, String | null, String | null]
 ) => {
   const conditions: any[] = []
 
@@ -559,11 +559,10 @@ export const getRankingsWhereClause = (
 }
 
 export const getTriplesRankingsQueryWithWhereClause = (
-  atomIds: [number | null, number | null, number | null],
+  atomIds: [string | null, string | null, string | null],
   address?: string
 ) => {
   const whereClause = getRankingsWhereClause(atomIds)
-  console.log('whereClause', whereClause)
   return {
     query: getTriplesRankingsQuery,
     variables: {
@@ -751,7 +750,7 @@ export const getUnstakePositionDataQuery = /* GraphQL */ `
   }
 `
 export const getUserPositionOnTripleQuery = /* GraphQL */ `
-  query GetUserPositionOnTriple($tripleId: numeric!, $address: String!) {
+  query GetUserPositionOnTriple($tripleId: String!, $address: String!) {
     # Get the triple to find both vault term IDs
     triple: triples(where: { term_id: { _eq: $tripleId } }, limit: 1) {
       term_id
@@ -796,8 +795,8 @@ export const getUserPositionOnTripleQuery = /* GraphQL */ `
 export const checkTripleExistsByEvmAddress = /* GraphQL */ `
   query CheckTripleExistsByEvmAddress(
     $label: String!
-    $predicateId: numeric!
-    $objectId: numeric!
+    $predicateId: String!
+    $objectId: String!
   ) {
     triples(
       where: {
