@@ -1,5 +1,146 @@
 import * as GraphQL from '@/lib/graphql/src/generated'
 
+// GraphQL queries for Intuition API
+
+// Fragment for account metadata
+const accountMetadataFragment = `
+  fragment AccountMetadata on accounts {
+    label
+    image
+    id
+    atom_id
+    type
+  }
+`
+
+// Fragment for atom value
+const atomValueFragment = `
+  fragment AtomValue on atoms {
+    value {
+      person {
+        name
+        image
+        description
+        url
+      }
+      thing {
+        name
+        image
+        description
+        url
+      }
+      organization {
+        name
+        image
+        description
+        url
+      }
+      account {
+        id
+        label
+        image
+      }
+    }
+  }
+`
+
+// Fragment for atom metadata
+const atomMetadataFragment = `
+  fragment AtomMetadata on atoms {
+    term_id
+    data
+    image
+    label
+    emoji
+    type
+    wallet_id
+    creator {
+      id
+      label
+      image
+    }
+    ...AtomValue
+  }
+`
+
+// Fragment for atom transaction info
+const atomTxnFragment = `
+  fragment AtomTxn on atoms {
+    block_number
+    created_at
+    transaction_hash
+    creator_id
+  }
+`
+
+// Fragment for atom vault details
+const atomVaultDetailsFragment = `
+  fragment AtomVaultDetails on atoms {
+    term_id
+    wallet_id
+    term {
+      vaults(where: { curve_id: { _eq: "1" } }) {
+        position_count
+        total_shares
+        current_share_price
+        positions_aggregate {
+          aggregate {
+            count
+            sum {
+              shares
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
+// Generic query to fetch atom by name or label
+export const getAtomByName = `
+  ${accountMetadataFragment}
+  ${atomValueFragment}
+  ${atomMetadataFragment}
+  ${atomTxnFragment}
+  ${atomVaultDetailsFragment}
+  
+  query GetAtomByName($name: String!) {
+    atoms(where: { 
+      _or: [
+        { data: { _eq: $name } },
+        { label: { _eq: $name } }
+      ]
+    }) {
+      ...AtomMetadata
+      ...AtomTxn
+      ...AtomVaultDetails
+      creator {
+        ...AccountMetadata
+      }
+    }
+  }
+`
+
+// Query to fetch atom by data field only
+export const getAtomByData = `
+  ${accountMetadataFragment}
+  ${atomValueFragment}
+  ${atomMetadataFragment}
+  ${atomTxnFragment}
+  ${atomVaultDetailsFragment}
+  
+  query GetAtomByData($data: String!) {
+    atoms(where: { data: { _eq: $data } }) {
+      ...AtomMetadata
+      ...AtomTxn
+      ...AtomVaultDetails
+      creator {
+        ...AccountMetadata
+      }
+    }
+  }
+`
+
 export const getAtoms = /* GraphQL */ `
   query Atoms(
     $orderBy: [atoms_order_by!] = [{ created_at: desc }]

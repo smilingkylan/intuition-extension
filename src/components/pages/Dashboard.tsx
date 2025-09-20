@@ -11,6 +11,8 @@ import { useTheme } from '~/components/ThemeProvider'
 import { useMode } from '../../hooks/useModeContext'
 import { useTweetHover } from '../../hooks/useTweetHover'
 import { TweetDisplay } from '../TweetDisplay'
+import { AtomDisplay } from '../AtomDisplay'
+import { formatSocialAtomLabel } from '~/util/api'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon } from 'lucide-react'
 
 export function Dashboard() {
@@ -86,6 +88,15 @@ export function Dashboard() {
       {/* Tabbed Content */}
       {/* Current Tweet Display */}
       <TweetDisplay tweet={currentTweet} isHovering={isHovering} />
+      
+      {/* Atom Display for Tweet Author */}
+      <AtomDisplay 
+        identifier={currentTweet?.username}
+        formatLabel={(username) => formatSocialAtomLabel('twitter', username)}
+        title="Tweet Author Atom"
+        notFoundMessage={`No Intuition atom found for @${currentTweet?.username || 'this user'}`}
+      />
+      
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
