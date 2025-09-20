@@ -22,6 +22,7 @@ class TwitterMouseTracker {
   private debounceTimer: number | null = null
   private lastHoveredTweet: string | null = null
   private isActive = true
+  private pendingTweetData: TweetData | null = null
 
   constructor() {
     this.initMouseTracking()
@@ -51,13 +52,15 @@ class TwitterMouseTracker {
   private handleMouseMove(event: MouseEvent) {
     if (!this.isActive) return
 
+    // Clear any existing timer
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
     }
 
+    // Set a new timer for 1000ms
     this.debounceTimer = window.setTimeout(() => {
       this.checkHoveredTweet(event)
-    }, 400)
+    }, 1000)
   }
 
   private handleMouseLeave() {
@@ -71,12 +74,6 @@ class TwitterMouseTracker {
     if (!this.isActive) return
     
     // Recheck current mouse position after scroll
-    const mouseEvent = new MouseEvent('mousemove', {
-      clientX: 0, // We'll use elementFromPoint instead
-      clientY: 0
-    })
-    
-    // Use the last known mouse position or center of viewport
     const centerX = window.innerWidth / 2
     const centerY = window.innerHeight / 2
     const element = document.elementFromPoint(centerX, centerY)
@@ -84,7 +81,8 @@ class TwitterMouseTracker {
     if (element) {
       const article = element.closest('article[data-testid="tweet"]')
       if (article) {
-        this.checkHoveredTweet({ clientX: centerX, clientY: centerY } as MouseEvent)
+        // Trigger a new debounced check
+        this.handleMouseMove({ clientX: centerX, clientY: centerY } as MouseEvent)
       }
     }
   }
@@ -100,8 +98,9 @@ class TwitterMouseTracker {
       // Only send if different from last hovered tweet
       if (tweetId !== this.lastHoveredTweet) {
         this.lastHoveredTweet = tweetId
+        this.pendingTweetData = tweetData
         this.sendTweetData(tweetData)
-        console.log('🐦 Tweet hovered:', tweetData.username, tweetData.content.substring(0, 50) + '...')
+        console.log('🐦 Tweet hovered (after 1000ms):', tweetData.username, tweetData.content.substring(0, 50) + '...')
       }
     } else if (this.lastHoveredTweet) {
       // Mouse moved away from tweet
@@ -111,6 +110,7 @@ class TwitterMouseTracker {
 
   private clearCurrentHover() {
     this.lastHoveredTweet = null
+    this.pendingTweetData = null
     this.sendTweetData(null)
     console.log('🐦 Tweet hover cleared')
   }
