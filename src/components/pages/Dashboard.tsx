@@ -9,9 +9,12 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { toast } from '~/hooks/use-toast'
 import { useTheme } from '~/components/ThemeProvider'
 import { useMode } from '../../hooks/useModeContext'
+import { useTweetHover } from '../../hooks/useTweetHover'
+import { TweetDisplay } from '../TweetDisplay'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon } from 'lucide-react'
 
 export function Dashboard() {
+  const { currentTweet, isHovering } = useTweetHover()
   const { theme } = useTheme()
   const { currentMode, isMouseMode, isExploreMode } = useMode()
   const [isLoading, setIsLoading] = useState(false)
@@ -81,6 +84,8 @@ export function Dashboard() {
       </div>
 
       {/* Tabbed Content */}
+      {/* Current Tweet Display */}
+      <TweetDisplay tweet={currentTweet} isHovering={isHovering} />
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
