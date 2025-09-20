@@ -10,6 +10,7 @@
     "package": "plasmo package"
   },
   "dependencies": {
+    "@0xintuition/protocol": "2.0.0-alpha.2",
     "@metamask/providers": "^22.1.1",
     "@plasmohq/messaging": "^0.7.2",
     "@radix-ui/react-avatar": "^1.1.10",
