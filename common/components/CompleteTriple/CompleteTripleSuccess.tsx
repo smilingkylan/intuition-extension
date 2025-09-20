@@ -1,4 +1,5 @@
 // todo: delete?
+import { ellipsizeHex } from '@/common/util'
 import { CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { CONFIG } from '~/constants'
 
@@ -36,7 +37,7 @@ export const CompleteTripleSuccess = ({
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Atom #{atomVaultId} created
+                  Atom {ellipsizeHex(atomVaultId, 12)} created
                 </a>{' '}
                 <a
                   href={atomTxUrl}
@@ -54,7 +55,7 @@ export const CompleteTripleSuccess = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Triple #{tripleVaultId} created
+                Triple {ellipsizeHex(tripleVaultId, 12)} created
               </a>{' '}
               <a
                 href={tripleTxUrl}

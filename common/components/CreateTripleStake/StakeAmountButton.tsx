@@ -1,28 +1,31 @@
 import { convertStakedBalance } from '@/common/util/intuition'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '../ui/skeleton'
+import { CONFIG } from '~/constants/web3'
+import { useExchangeRates } from '@/common/hooks/use-exchange-rates'
+import { useCurrency } from '../CurrencyProvider'
+
+const { CURRENCY_SYMBOL } = CONFIG
 
 export const StakeAmountButton = ({
   amount,
-  exchangeRates,
   onClick,
 }: {
   amount: number
-  exchangeRates: any[]
   onClick: (amount: number) => void
 }) => {
+  const { data } = useExchangeRates()
+  const { selectedCurrency } = useCurrency()
   const amountInfo = () => {
-    const usdValue = convertStakedBalance(
+    const fiatValue = convertStakedBalance(
       amount.toString(),
-      exchangeRates,
-      'ETH',
-      'USD'
+      data?.rate
     )
     return (
       <div className="flex flex-col justify-between items-center">
-        <span>{amount} ETH</span>
+        <span>{amount} {CURRENCY_SYMBOL}</span>
         <span className="text-sm text-muted-foreground">
-          ${usdValue.formatted}
+          {selectedCurrency.toUpperCase()} {fiatValue.formatted}
         </span>
       </div>
     )
@@ -35,18 +38,16 @@ export const StakeAmountButton = ({
       size="sm"
       className="h-20"
     >
-      {exchangeRates ? amountInfo() : <Skeleton className="w-full h-20" />}
+      {data?.rate ? amountInfo() : <Skeleton className="w-full h-20" />}
     </Button>
   )
 }
 
 export const StakeAmountGrid = ({
   amounts,
-  exchangeRates,
   onClick,
 }: {
   amounts: number[]
-  exchangeRates: any[]
   onClick: (amount: number) => void
 }) => {
   return (
@@ -56,7 +57,6 @@ export const StakeAmountGrid = ({
           key={amount}
           onClick={onClick}
           amount={amount}
-          exchangeRates={exchangeRates}
         />
       ))}
     </div>

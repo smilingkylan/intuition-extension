@@ -18,6 +18,7 @@ type NormalizedAtomContents = {
 }
 
 export const getAtomContents = (atom: any) => {
+  if (!atom.value) return null
   const { thing, organization, person } = atom.value
   const contents = thing || organization || person
   return contents
@@ -123,7 +124,7 @@ export const convertValueBigInt = (
 
 
 
-export const convertStakedBalance = (amount: string, exchangeRate: string = '1') => {
+export const convertStakedBalance = (amount: string, exchangeRate: number = 1) => {
   if (!exchangeRate) {
     return {
       whole: '0',

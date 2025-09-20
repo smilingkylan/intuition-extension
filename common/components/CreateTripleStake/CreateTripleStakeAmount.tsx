@@ -14,6 +14,8 @@ import { CardHeader, CardTitle } from '../ui/card'
 import { StakeAmountGrid } from './StakeAmountButton'
 import { Separator } from '../ui/separator'
 import { useExchangeRates } from '@/common/hooks/use-exchange-rates'
+import { useCurrency } from '../CurrencyProvider'
+import { convertStakedBalance } from '@/common/util/intuition'
 
 // Function to fetch exchange rates
 const fetchExchangeRates = async () => {
@@ -39,11 +41,12 @@ export const CreateTripleStakeAmount = ({
 }) => {
   // Fetch exchange rates using React Query
   const { data: exchangeRates, isLoading } = useExchangeRates()
+  const { selectedCurrency } = useCurrency()
 
-  // Calculate USD value
-  const usdValue = exchangeRates?.eth_usd?.usd
-    ? (exchangeRates.eth_usd.usd * form.watch('stakeAmount')).toFixed(2)
-    : '0.00'
+  const fiatValue = convertStakedBalance(
+    form.watch('stakeAmount').toString(),
+    exchangeRates?.rate
+  )
 
   const onClickAmount = (amount: number) => {
     form.setValue('shouldStake', true)
@@ -59,7 +62,6 @@ export const CreateTripleStakeAmount = ({
         <div className="flex flex-1">
           <StakeAmountGrid
             amounts={[0.0004, 0.0012, 0.0036, 0.0108]}
-            exchangeRates={exchangeRates}
             onClick={onClickAmount}
           />
         </div>
@@ -86,7 +88,7 @@ export const CreateTripleStakeAmount = ({
                   <FormLabel>Stake Amount</FormLabel>
                   {!isLoading && (
                     <span className="text-sm text-muted-foreground">
-                      ${usdValue} USD
+                      {selectedCurrency.toUpperCase()} {fiatValue.formatted}
                     </span>
                   )}
                 </div>

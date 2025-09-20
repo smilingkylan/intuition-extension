@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 import { formatUnits, parseUnits } from 'viem'
 
 const CURRENCIES = [

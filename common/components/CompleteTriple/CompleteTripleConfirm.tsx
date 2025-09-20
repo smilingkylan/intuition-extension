@@ -1,4 +1,4 @@
-import { cn, convertStakedBalance } from '@/common/util'
+import { cn, convertStakedBalance } from '~/util'
 import { Button } from '../ui/button'
 import {
   CardContent,
@@ -10,7 +10,11 @@ import {
 import { VerticalTriple } from '../VerticalTriple'
 import { ArrowDownIcon, Loader2Icon } from 'lucide-react'
 import { Progress } from '../ui/progress'
-import { useExchangeRates } from '@/common/hooks/use-exchange-rates'
+import { useExchangeRates } from '~/hooks/use-exchange-rates'
+import { CONFIG } from '~/constants/web3'
+import { useCurrency } from '../CurrencyProvider'
+
+const { CURRENCY_SYMBOL } = CONFIG
 
 const PROGRESS_VALUES = {
   COMPLETE: { text: 'Success!', value: 100 },
@@ -36,12 +40,13 @@ export const CompleteTripleConfirm = ({
   finalData: any
 }) => {
   const { data: exchangeRates } = useExchangeRates()
+  const { selectedCurrency } = useCurrency()
 
   let fiatValue
   if (exchangeRates) {
     const { fiat } = convertStakedBalance(
       form.watch('stakeAmount').toString(),
-      '1'
+      exchangeRates?.rate
     )
     fiatValue = fiat
   }
@@ -73,10 +78,10 @@ export const CompleteTripleConfirm = ({
 
       <CardContent className="flex flex-col w-full">
         <h3 className="text-center text-lg font-bold mb-0">
-          {form.watch('stakeAmount')} $TRUST
+          {form.watch('stakeAmount')} {CURRENCY_SYMBOL}
         </h3>
         <p className="text-center text-sm text-muted-foreground">
-          (${fiatValue})
+          ({selectedCurrency.toUpperCase()} {fiatValue})
         </p>
       </CardContent>
       <div className="w-full flex justify-center items-center">
