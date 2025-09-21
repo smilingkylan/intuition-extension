@@ -210,11 +210,6 @@ export function AtomDisplay({
                     to: '/create-atom/', 
                     search: { platform, username: identifier } 
                   })
-                } else {
-                  const createUrl = searchQuery 
-                    ? `https://dev.portal.intuition.systems/app/create?data=${encodeURIComponent(searchQuery)}`
-                    : 'https://dev.portal.intuition.systems/app/create'
-                  window.open(createUrl, '_blank')
                 }
               }}
             >

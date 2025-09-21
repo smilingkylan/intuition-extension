@@ -12,6 +12,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
       throw new Error('Usernames array is required')
     }
 
+    return
     // Process usernames in background (non-blocking)
     atomCreatorService.processTwitterUsernames(usernames).catch(error => {
       console.error('Background atom creation failed:', error)
