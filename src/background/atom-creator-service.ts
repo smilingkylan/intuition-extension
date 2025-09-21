@@ -1,6 +1,5 @@
 import { createWalletClient, http, parseEther, toHex, createPublicClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { baseSepolia } from 'viem/chains'
 import { createAtoms, eventParseAtomCreated } from '@0xintuition/protocol'
 import { uploadJSONToIPFS } from '~/util/fetch'
 import { CONFIG } from '~/constants'

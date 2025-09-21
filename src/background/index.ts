@@ -1,18 +1,12 @@
 // background/index.ts
-import { Web3Storage } from '../lib/storage'
 import { Web3Service } from './web3-service'
-import { getAtomCreatorService } from './atom-creator-service'
 
 export class BackgroundService {
   private web3Service: Web3Service
-  private atomCreatorService
 
   constructor() {
     // Initialize the web3 service
     this.web3Service = new Web3Service()
-    
-    // Initialize the atom creator service
-    this.atomCreatorService = getAtomCreatorService()
     
     // Listen for storage changes and broadcast to all contexts
     chrome.storage.onChanged.addListener((changes, namespace) => {
