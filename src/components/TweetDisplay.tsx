@@ -50,28 +50,31 @@ export function TweetDisplay({ tweet, isHovering }: TweetDisplayProps) {
   }
 
   return (
-    <Card className="border-primary/20 bg-primary/5">
+    <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={`https://unavatar.io/twitter/${tweet.username}`} />
-            <AvatarFallback>{tweet.displayName[0]}</AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm truncate">{tweet.displayName}</h3>
-              {tweet.isVerified && (
-                <VerifiedIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
-              )}
-              <span className="text-muted-foreground text-sm">@{tweet.username}</span>
-              <span className="text-muted-foreground text-sm">·</span>
-              <span className="text-muted-foreground text-sm">{formatTime(tweet.timestamp)}</span>
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage src={`https://unavatar.io/twitter/${tweet.username}`} />
+              <AvatarFallback>{tweet.displayName.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">{tweet.displayName}</CardTitle>
+                {tweet.isVerified && (
+                  <VerifiedIcon className="h-4 w-4 text-blue-500" />
+                )}
+                {isHovering && (
+                  <Badge variant="secondary" className="text-xs">
+                    Live
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-sm">@{tweet.username}</CardDescription>
             </div>
           </div>
-          
           <Badge variant="outline" className="text-xs">
-            Live
+            {formatTime(tweet.timestamp)}
           </Badge>
         </div>
       </CardHeader>

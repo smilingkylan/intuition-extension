@@ -8,8 +8,14 @@ export function useTweetHover() {
   useEffect(() => {
     const handleMessage = (message: any) => {
       if (isTweetHoveredMessage(message)) {
-        setCurrentTweet(message.data)
-        setIsHovering(message.data !== null)
+        if (message.data !== null) {
+          // New tweet data - update both tweet and hovering state
+          setCurrentTweet(message.data)
+          setIsHovering(true)
+        } else {
+          // Mouse left tweet - only update hovering state, keep the tweet data
+          setIsHovering(false)
+        }
       }
     }
 
@@ -24,6 +30,9 @@ export function useTweetHover() {
   return {
     currentTweet,
     isHovering,
-    clearTweet: () => setCurrentTweet(null)
+    clearTweet: () => {
+      setCurrentTweet(null)
+      setIsHovering(false)
+    }
   }
 }

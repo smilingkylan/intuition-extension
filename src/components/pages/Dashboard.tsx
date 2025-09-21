@@ -17,7 +17,7 @@ import { formatSocialAtomLabel } from '~/util/api'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon } from 'lucide-react'
 
 export function Dashboard() {
-  const { currentTweet, isHovering } = useTweetHover()
+  const { currentTweet, isHovering, clearTweet } = useTweetHover()
   const { theme } = useTheme()
   const { currentMode, isMouseMode, isExploreMode } = useMode()
   const [isLoading, setIsLoading] = useState(false)
@@ -88,6 +88,18 @@ export function Dashboard() {
 
       {/* Tabbed Content */}
       {/* Current Tweet Display */}
+      {currentTweet && (
+        <div className="flex justify-end mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearTweet}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Clear Tweet
+          </Button>
+        </div>
+      )}
       <TweetDisplay tweet={currentTweet} isHovering={isHovering} />
       
       {/* Atom Display for Tweet Author */}
@@ -96,6 +108,7 @@ export function Dashboard() {
         formatLabel={(username) => `x.com:${username.toLowerCase()}`}
         title="Tweet Author Atom"
         notFoundMessage={`No Intuition atom found for @${currentTweet?.username || 'this user'}`}
+        platform="x.com"
       />
       
       {/* Atom Creation Status */}
