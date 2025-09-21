@@ -59,7 +59,7 @@ export const CreateAtomImage = ({
         const formData = new FormData()
         formData.append('image', file)
         const { ipfsHash } = await uploadImage(formData)
-        const url = `https://ipfs.io/ipfs/${ipfsHash}`
+        const url = `ipfs://${ipfsHash}`
         form.setValue('associated_image_url', url)
         setUrlToFetch(url)
       } catch (error) {
@@ -129,7 +129,7 @@ export const CreateAtomImage = ({
             const formData = new FormData()
             formData.append('image', tempFile)
             const { ipfsHash } = await uploadImage(formData)
-            const url = `https://ipfs.io/ipfs/${ipfsHash}`
+            const url = `ipfs://${ipfsHash}`
             form.setValue('associated_image_url', url)
             setUrlToFetch(url)
           }
