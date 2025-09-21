@@ -2,6 +2,8 @@
 import mainnetContractAbi from './mainnetContractAbi'
 import sepoliaContractAbi from './sepoliaContractAbi'
 import {intuitionTestnetContractAbi} from './intuitionTestnetContractABI'
+import { intuitionTestnet } from './intuitionTestnet'
+import { base, baseSepolia } from 'viem/chains'
 
 export const BASE_MAINNET = {
   I8N_CONTRACT_ADDRESS: '0x430BbF52503Bd4801E51182f4cB9f8F534225DE5',
@@ -25,6 +27,7 @@ export const BASE_MAINNET = {
   TARGET_TYPES: {},
   ETH_RPC_URL:
     'https://base-mainnet.g.alchemy.com/v2/xww_HDMOC0nGOVJL-HtXWxn2oqXOtK5v',
+  CHAIN_CONFIG: base
 }
 
 export const BASE_SEPOLIA_PREDICATE_ATOMS_BY_TYPE = {
@@ -64,6 +67,7 @@ export const BASE_SEPOLIA = {
   TRUSTWORTHY_ATOM_ID: '26858',
   ETH_RPC_URL:
     'https://base-sepolia.g.alchemy.com/v2/xww_HDMOC0nGOVJL-HtXWxn2oqXOtK5v',
+  CHAIN_CONFIG: baseSepolia
 }
 
 export const INTUITION_TESTNET = {
@@ -92,6 +96,7 @@ export const INTUITION_TESTNET = {
   IS_ATOM_ID: '0x9480992aaf84de3ead7ef7bc1eab16473de93647b83dc5c3575146d971b4737d',
   TRUSTWORTHY_ATOM_ID: '0x357a27d54fecf107f717eb144e660914beb907b83628dff7bb3ac0d51856afe8',
   ETH_RPC_URL: 'https://testnet.rpc.intuition.systems/http',
+  CHAIN_CONFIG: intuitionTestnet
 }
 
 export const CHAIN_CONFIGS = [INTUITION_TESTNET, BASE_MAINNET, BASE_SEPOLIA]

@@ -107,8 +107,8 @@ export const getAtomByName = `
   query GetAtomByName($name: String!) {
     atoms(where: { 
       _or: [
-        { data: { _eq: $name } },
-        { label: { _eq: $name } }
+        { data: { _ilike: $name } },
+        { label: { _ilike: $name } }
       ]
     }) {
       ...AtomMetadata
@@ -130,7 +130,7 @@ export const getAtomByData = `
   ${atomVaultDetailsFragment}
   
   query GetAtomByData($data: String!) {
-    atoms(where: { data: { _eq: $data } }) {
+    atoms(where: { data: { _ilike: $data } }) {
       ...AtomMetadata
       ...AtomTxn
       ...AtomVaultDetails

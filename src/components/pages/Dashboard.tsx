@@ -12,6 +12,7 @@ import { useMode } from '../../hooks/useModeContext'
 import { useTweetHover } from '../../hooks/useTweetHover'
 import { TweetDisplay } from '../TweetDisplay'
 import { AtomDisplay } from '../AtomDisplay'
+import { AtomCreationStatus } from '../AtomCreationStatus'
 import { formatSocialAtomLabel } from '~/util/api'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon } from 'lucide-react'
 
@@ -92,10 +93,13 @@ export function Dashboard() {
       {/* Atom Display for Tweet Author */}
       <AtomDisplay 
         identifier={currentTweet?.username}
-        formatLabel={(username) => formatSocialAtomLabel('twitter', username)}
+        formatLabel={(username) => `x.com:${username.toLowerCase()}`}
         title="Tweet Author Atom"
         notFoundMessage={`No Intuition atom found for @${currentTweet?.username || 'this user'}`}
       />
+      
+      {/* Atom Creation Status */}
+      <AtomCreationStatus />
       
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>

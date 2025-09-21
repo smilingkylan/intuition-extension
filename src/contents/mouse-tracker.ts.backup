@@ -3,8 +3,6 @@
  * Monitors mouse movements and detects when hovering over tweets
  */
 
-import { sendToBackground } from "@plasmohq/messaging"
-
 interface TweetData {
   tweetId: string
   username: string
@@ -25,8 +23,6 @@ class TwitterMouseTracker {
   private lastHoveredTweet: string | null = null
   private isActive = true
   private pendingTweetData: TweetData | null = null
-  private collectedUsernames: Set<string> = new Set()
-  private atomCreationTimer: number | null = null
 
   constructor() {
     this.initMouseTracking()
@@ -120,14 +116,9 @@ class TwitterMouseTracker {
   }
 
   private extractTweetData(article: HTMLElement): TweetData {
-    const username = this.extractUsername(article)
-    
-    // Collect username for atom creation
-    this.collectUsername(username)
-    
     return {
       tweetId: this.extractTweetId(article),
-      username: username,
+      username: this.extractUsername(article),
       displayName: this.extractDisplayName(article),
       content: this.extractTweetText(article),
       timestamp: this.extractTimestamp(article),
@@ -208,47 +199,6 @@ class TwitterMouseTracker {
       return Math.floor(parseFloat(cleanText.replace('M', '')) * 1000000)
     }
     return parseInt(cleanText) || 0
-  }
-
-
-  private collectUsername(username: string) {
-    if (username && !this.collectedUsernames.has(username)) {
-      this.collectedUsernames.add(username)
-      this.scheduleAtomCreation()
-    }
-  }
-
-  private scheduleAtomCreation() {
-    // Clear existing timer
-    if (this.atomCreationTimer) {
-      clearTimeout(this.atomCreationTimer)
-    }
-
-    // Schedule batch creation after 2 seconds of no new usernames
-    this.atomCreationTimer = setTimeout(() => {
-      this.createAtomsForCollectedUsernames()
-    }, 2000)
-  }
-
-  private async createAtomsForCollectedUsernames() {
-    const usernames = Array.from(this.collectedUsernames)
-    if (usernames.length === 0) return
-
-    console.log(`Creating atoms for ${usernames.length} usernames:`, usernames)
-
-    try {
-      await sendToBackground({
-        name: "create-atoms",
-        body: {
-          usernames
-        }
-      })
-      
-      // Clear the collected usernames after sending
-      this.collectedUsernames.clear()
-    } catch (error) {
-      console.error('Failed to trigger atom creation:', error)
-    }
   }
 
   private sendTweetData(data: TweetData | null) {

@@ -6,7 +6,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { Separator } from '~/components/ui/separator'
 import { ExternalLinkIcon, DollarSignIcon, UsersIcon, CalendarIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react'
 import { formatUnits } from 'viem'
-import { useAtomByLabel } from '../hooks/useAtomByName'
+import { useAtomByLabel, useAtomByName } from '../hooks/useAtomByName'
 import { AtomIcon } from '~/components/AtomIcon'
 import { formatSocialAtomLabel } from '~/util/api'
 
@@ -38,7 +38,7 @@ export function AtomDisplay({
     return identifier
   }, [identifier, identifierPrefix, formatLabel])
 
-  const { data: atom, isLoading, error } = useAtomByLabel(searchQuery)
+  const { data: atom, isLoading, error } = useAtomByName({ name: searchQuery })
 
   if (!identifier) {
     return null

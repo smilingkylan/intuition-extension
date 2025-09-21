@@ -83,8 +83,8 @@ export function useAtomByName({ name, enabled = true, searchByDataOnly = false }
       return response.data.atoms?.[0] || null
     },
     enabled: enabled && !!name,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 1, // 5 minutes
+    gcTime: 1, // 10 minutes
   })
 }
 
