@@ -15,7 +15,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexRoute } from './routes/index'
 import { Route as ExploreRoute } from './routes/explore'
-import { Route as HistoryRoute } from './routes/history'
+import { Route as HistoryRoute } from './x-com/history'
 import { Route as SettingsRoute } from './routes/settings'
 
 // Create/Update Routes

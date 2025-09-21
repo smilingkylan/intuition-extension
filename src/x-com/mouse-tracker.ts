@@ -20,7 +20,7 @@ interface TweetData {
   likeCount: number
 }
 
-class TwitterMouseTracker {
+export class TwitterMouseTracker {
   private debounceTimer: number | null = null
   private lastHoveredTweet: string | null = null
   private isActive = true
@@ -36,9 +36,6 @@ class TwitterMouseTracker {
   private initMouseTracking() {
     document.addEventListener('mousemove', this.handleMouseMove.bind(this))
     document.addEventListener('mouseleave', this.handleMouseLeave.bind(this))
-    
-    // Also listen for scroll events to recheck position
-    document.addEventListener('scroll', this.handleScroll.bind(this), { passive: true })
     
     console.log('🐭 Twitter Mouse Tracker initialized')
   }
@@ -72,23 +69,6 @@ class TwitterMouseTracker {
       clearTimeout(this.debounceTimer)
     }
     this.clearCurrentHover()
-  }
-
-  private handleScroll() {
-    if (!this.isActive) return
-    
-    // Recheck current mouse position after scroll
-    const centerX = window.innerWidth / 2
-    const centerY = window.innerHeight / 2
-    const element = document.elementFromPoint(centerX, centerY)
-    
-    if (element) {
-      const article = element.closest('article[data-testid="tweet"]')
-      if (article) {
-        // Trigger a new debounced check
-        this.handleMouseMove({ clientX: centerX, clientY: centerY } as MouseEvent)
-      }
-    }
   }
 
   private checkHoveredTweet(event: MouseEvent) {
@@ -274,19 +254,5 @@ class TwitterMouseTracker {
     }
     document.removeEventListener('mousemove', this.handleMouseMove.bind(this))
     document.removeEventListener('mouseleave', this.handleMouseLeave.bind(this))
-    document.removeEventListener('scroll', this.handleScroll.bind(this))
   }
 }
-
-// Initialize the tracker
-const tracker = new TwitterMouseTracker()
-
-// Make it available globally for debugging
-;(window as any).twitterTracker = tracker
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-  tracker.destroy()
-})
-
-export default tracker
