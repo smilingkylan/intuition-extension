@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react'
 import { SocialAtomFormData, TransactionData, CreatedAtoms } from './types'
 
 interface CreateAtomContextType {
@@ -33,9 +33,9 @@ export function CreateAtomProvider({ children }: { children: ReactNode }) {
   const [platform, setPlatform] = useState('x.com')
   const [username, setUsername] = useState('')
 
-  const setFormData = (data: Partial<SocialAtomFormData>) => {
+  const setFormData = useCallback((data: Partial<SocialAtomFormData>) => {
     setFormDataState(prev => ({ ...prev, ...data }))
-  }
+  }, [])
 
   const value = {
     formData,
