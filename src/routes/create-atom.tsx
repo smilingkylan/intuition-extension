@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { Progress } from '~/components/ui/progress'
 import { Button } from '~/components/ui/button'
 import { X } from 'lucide-react'
@@ -10,9 +10,11 @@ export const Route = createFileRoute('/create-atom')({
 
 function CreateAtomLayout() {
   const navigate = useNavigate()
-  const pathname = window.location.pathname
+  const location = useLocation()
+
   
   const getProgress = () => {
+    const { pathname } = location
     if (pathname.includes('/success')) return 100
     if (pathname.includes('/process')) return 90
     if (pathname.includes('/review')) return 80
