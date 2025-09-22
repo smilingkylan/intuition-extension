@@ -22,6 +22,7 @@ import {
   getAtomCost 
 } from '@0xintuition/protocol'
 import { CONFIG } from '~/constants'
+import { intuitionTestnet } from '~/constants/intuitionTestnet'
 
 export class Web3Service {
   private provider: any = null
@@ -258,18 +259,14 @@ export class Web3Service {
 
   private getChainById(chainId: number): typeof mainnet | typeof sepolia {
     switch (chainId) {
-      case 1:
-        return mainnet
-      case 11155111:
-        return sepolia
       case 13579:
         // This is likely a local testnet or custom chain
         // For now, we'll treat it as sepolia (testnet)
         console.log(`Using sepolia config for chain ID: ${chainId}`)
-        return sepolia
+        return intuitionTestnet
       default:
-        console.warn(`Unknown chain ID: ${chainId}, defaulting to mainnet`)
-        return mainnet
+        console.warn(`Unknown chain ID: ${chainId}, defaulting to Intuition Testnet`)
+        return intuitionTestnet
     }
   }
 
