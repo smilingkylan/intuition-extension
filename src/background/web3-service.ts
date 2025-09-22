@@ -34,9 +34,14 @@ export class Web3Service {
   // Lazy provider initialization - only create when needed
   private getProvider() {
     if (!this.provider) {
-      console.log('Creating external provider with stable parameter...')
-      this.provider = createExternalExtensionProvider('stable')
-      this.subscribeToEvents(this.provider)
+      console.log('Creating new MetaMask provider')
+      this.provider = createExternalExtensionProvider()
+      
+      // Attach event listeners once when provider is created
+      this.provider.on('accountsChanged', this.handleAccountsChanged)
+      this.provider.on('chainChanged', this.handleChainChanged)
+      this.provider.on('connect', this.handleConnect)
+      this.provider.on('disconnect', this.handleDisconnect)
     }
     return this.provider
   }
@@ -105,6 +110,9 @@ export class Web3Service {
       }
     }
   }
+
+  // need to find out whether we were ever able to show chain switching
+  // or account switching
 
   private handleChainChanged = (chainId: string) => {
     console.log('Chain changed:', chainId)

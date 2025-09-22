@@ -24,6 +24,7 @@ export const Header = () => {
     getShortAddress,
     getNetworkName
   } = useWeb3()
+  console.log('Header rendering', isConnected, connectedAddress, chainId, isConnecting, error)
 
   // Cycle through themes: light -> dark -> system -> light
   const cycleTheme = () => {

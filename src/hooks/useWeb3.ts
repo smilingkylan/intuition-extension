@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { sendToBackground } from '@plasmohq/messaging'
 import type { Web3State } from '../lib/storage'
+import { INTUITION_TESTNET } from '../../common/constants/web3'
 
 export function useWeb3() {
   const [state, setState] = useState<Web3State>({
@@ -12,12 +13,15 @@ export function useWeb3() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  console.log('useWeb3 1 state', state)
   // Fetch initial state on mount
   useEffect(() => {
+    console.log('useWeb3 2 useEffect')
     fetchConnectionState()
 
     // Listen for state changes from background
     const handleMessage = (message: any) => {
+      console.log('useWeb3 3 handleMessage', message)
       if (message.type === 'WEB3_STATE_CHANGED') {
         console.log('Web3 state changed:', message.data)
         setState(message.data)
@@ -49,6 +53,7 @@ export function useWeb3() {
   }
 
   const connectWallet = async () => {
+    console.log('useWeb3 4 connectWallet')
     setIsConnecting(true)
     setError(null)
 
@@ -137,6 +142,8 @@ export function useWeb3() {
         return 'Mainnet'
       case 11155111:
         return 'Sepolia'
+      case 13579:
+        return 'Intuition Testnet'
       default:
         return `Chain ${chainId}`
     }
