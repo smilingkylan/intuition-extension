@@ -29,7 +29,7 @@ function ProcessStep() {
         // First, prepare the atoms to create
         const atomsToCreate = transactionData.atomsToCreate.map(atom => ({
           data: atom.uri,
-          initialDeposit: atom.stake.toString()
+          initialDeposit: atom.stake
         }))
         console.log('atomsToCreate', atomsToCreate)
         // Send to background for execution using generic web3 handler

@@ -235,7 +235,8 @@ export class Web3Service {
     // Create public client
     this.publicClient = createPublicClient({
       chain,
-      transport: http()
+      transport: http(),
+      ccipRead: false
     })
 
     // Create wallet client if we have an account
@@ -243,7 +244,8 @@ export class Web3Service {
       this.walletClient = createWalletClient({
         chain,
         account: account || this.currentState.connectedAddress!,
-        transport: custom(provider)
+        transport: custom(provider),
+        ccipRead: false
       })
     }
 
@@ -299,11 +301,12 @@ export class Web3Service {
     if (!params.value) {
       // Auto-calculate including protocol fees
       for (const atom of atomsToCreate) {
-        const { result: atomCost } = await this.publicClient.readContract({
+        const atomCost = await this.publicClient.readContract({
           ...config,
           functionName: 'getAtomCost',
           args: []
         }) as { result: bigint }
+        console.log('readContract response, atomCost', atomCost, ' atom.initialDeposit', atom.initialDeposit)
         totalValue += atom.initialDeposit + atomCost
       }
     }

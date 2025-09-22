@@ -21,8 +21,10 @@ function ReviewStep() {
   const totalTriples = (formData.hasImage && formData.hasIdentity ? 2 : 
                        formData.hasImage || formData.hasIdentity ? 1 : 0)
   
-  const atomStake = parseEther('0.001')
-  const tripleStake = parseEther('0.0004')
+  const atomStakeAmount = '0.001'  // ETH amount as string
+  const tripleStakeAmount = '0.0004'  // ETH amount as string
+  const atomStake = parseEther(atomStakeAmount)
+  const tripleStake = parseEther(tripleStakeAmount)
   const totalStake = atomStake * BigInt(totalAtoms)
   const totalTripleStake = tripleStake * BigInt(totalTriples)
   const totalCost = totalStake + totalTripleStake
@@ -41,7 +43,7 @@ function ReviewStep() {
     const socialUpload = await uploadJSONToIPFS([socialAtomData])
     atomsToCreate.push({
       uri: `ipfs://${socialUpload[0].IpfsHash}`,
-      stake: atomStake.toString()
+      stake: atomStakeAmount
     })
 
     // 2. Optional image atom
@@ -56,7 +58,7 @@ function ReviewStep() {
       const imageUpload = await uploadJSONToIPFS([imageAtomData])
       atomsToCreate.push({
         uri: `ipfs://${imageUpload[0].IpfsHash}`,
-        stake: atomStake.toString()
+        stake: atomStakeAmount
       })
     }
 
@@ -71,7 +73,7 @@ function ReviewStep() {
       const identityUpload = await uploadJSONToIPFS([identityAtomData])
       atomsToCreate.push({
         uri: `ipfs://${identityUpload[0].IpfsHash}`,
-        stake: atomStake.toString()
+        stake: atomStakeAmount
       })
     }
 
