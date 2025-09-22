@@ -11,6 +11,7 @@ import {
 } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
 import { Web3Storage, type Web3State } from '../lib/storage'
+import { intuitionTestnet } from '~/constants/intuitionTestnet'
 
 export class Web3Service {
   private provider: any = null
@@ -286,15 +287,8 @@ export class Web3Service {
 
   private getChainById(chainId: number): typeof mainnet | typeof sepolia {
     switch (chainId) {
-      case 1:
-        return mainnet
-      case 11155111:
-        return sepolia
       case 13579:
-        // This is likely a local testnet or custom chain
-        // For now, we'll treat it as sepolia (testnet)
-        console.log(`Using sepolia config for chain ID: ${chainId}`)
-        return sepolia
+        return intuitionTestnet
       default:
         console.warn(`Unknown chain ID: ${chainId}, defaulting to mainnet`)
         return mainnet
@@ -303,10 +297,6 @@ export class Web3Service {
 
   private getNetworkName(chainId: number): string {
     switch (chainId) {
-      case 1:
-        return 'Ethereum Mainnet'
-      case 11155111:
-        return 'Sepolia'
       case 13579:
         return 'Intuition Testnet'
       default:

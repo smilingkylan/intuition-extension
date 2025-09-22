@@ -153,10 +153,6 @@ export function useWeb3() {
   const getNetworkName = (chainId: number | null) => {
     if (!chainId) return 'Unknown'
     switch (chainId) {
-      case 1:
-        return 'Mainnet'
-      case 11155111:
-        return 'Sepolia'
       case 13579:
         return 'Intuition Testnet'
       default:
