@@ -23,10 +23,12 @@ export function useWeb3() {
     // Listen for state changes from background
     const handleMessage = (message: any) => {
       console.log('useWeb3 3 handleMessage', message)
+      
       if (message.type === 'WEB3_STATE_CHANGED') {
         console.log('Web3 state changed:', message.data)
         setState(message.data)
       } else if (message.type === 'ACCOUNT_CHANGED_NOTIFICATION') {
+        console.log('Web3 account changed', message.data)
         const { newAccount } = message.data
         toast({
           title: "Account Changed",
@@ -34,6 +36,7 @@ export function useWeb3() {
           duration: 4000,
         })
       } else if (message.type === 'CHAIN_CHANGED_NOTIFICATION') {
+        console.log('Web3 chain changed', message.data)
         const { chainName } = message.data
         toast({
           title: "Network Changed", 
@@ -160,6 +163,100 @@ export function useWeb3() {
     }
   }
 
+  const sendSelfTransfer = async (amount: string = '1') => {
+    if (!state.isConnected || !state.connectedAddress) {
+      throw new Error('Wallet not connected')
+    }
+
+    setError(null)
+
+    try {
+      console.log('Sending self-transfer...')
+      
+      // Convert amount to wei (1 ETH = 10^18 wei)
+      const valueInWei = BigInt(Math.floor(parseFloat(amount) * 1e18))
+      
+      const response = await sendToBackground({
+        name: 'web3',
+        body: {
+          method: 'sendTransaction',
+          params: [state.connectedAddress, valueInWei.toString()]
+        }
+      })
+
+      console.log('Self-transfer response:', response)
+
+      if (response.success === false || response.error) {
+        throw new Error(response.error || 'Transaction failed')
+      }
+
+      return response
+    } catch (err: any) {
+      console.error('Self-transfer error:', err)
+      const errorMessage = err.message || 'Failed to send transaction'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    }
+  }
+
+  const switchToIntuitionTestnet = async () => {
+    setError(null)
+
+    try {
+      console.log('Switching to Intuition Testnet...')
+      
+      const response = await sendToBackground({
+        name: 'web3',
+        body: {
+          method: 'switchToIntuitionTestnet',
+          params: []
+        }
+      })
+
+      console.log('Switch network response:', response)
+
+      if (response.success === false || response.error) {
+        throw new Error(response.error || 'Failed to switch network')
+      }
+
+      // Refresh connection state after switching
+      await fetchConnectionState()
+      
+      toast({
+        title: "Network Switched",
+        description: "Successfully switched to Intuition Testnet",
+        duration: 3000,
+      })
+
+      return response
+    } catch (err: any) {
+      console.error('Switch network error:', err)
+      const errorMessage = err.message || 'Failed to switch network'
+      setError(errorMessage)
+      
+      // Show appropriate error message
+      if (errorMessage.includes('rejected')) {
+        toast({
+          title: "Network Switch Cancelled",
+          description: "You need to approve the network switch in MetaMask",
+          variant: "destructive",
+          duration: 5000,
+        })
+      } else {
+        toast({
+          title: "Network Switch Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000,
+        })
+      }
+      
+      throw new Error(errorMessage)
+    }
+  }
+
+  const isOnCorrectChain = state.chainId === 13579 // Intuition Testnet
+
   return {
     ...state,
     isConnecting,
@@ -168,6 +265,9 @@ export function useWeb3() {
     disconnectWallet,
     getShortAddress,
     getNetworkName,
+    sendSelfTransfer,
+    switchToIntuitionTestnet,
+    isOnCorrectChain,
     refetch: fetchConnectionState
   }
 }

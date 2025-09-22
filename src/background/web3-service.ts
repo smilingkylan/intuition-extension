@@ -35,14 +35,25 @@ export class Web3Service {
   // Lazy provider initialization - only create when needed
   private getProvider() {
     if (!this.provider) {
-      console.log('Creating new MetaMask provider')
+      console.log('🚀 Creating new MetaMask provider')
       this.provider = createExternalExtensionProvider()
+      
+      // Add debug log
+      console.log('📌 Attaching event listeners to provider...')
       
       // Attach event listeners once when provider is created
       this.provider.on('accountsChanged', this.handleAccountsChanged)
-      this.provider.on('chainChanged', this.handleChainChanged)
+      this.provider.on('chainChanged', this.handleChainChanged.bind(this))
       this.provider.on('connect', this.handleConnect)
       this.provider.on('disconnect', this.handleDisconnect)
+      
+      // Add debug to verify listeners attached
+      console.log('✅ Event listeners attached, provider._events:', this.provider._events)
+      
+      // Test current chain
+      this.provider.request({ method: 'eth_chainId' })
+        .then((chainId: string) => console.log('📊 Current chainId:', chainId))
+        .catch((err: any) => console.error('❌ Failed to get chainId:', err))
     }
     return this.provider
   }
@@ -130,13 +141,23 @@ export class Web3Service {
   // or account switching
 
   private handleChainChanged = (chainId: string) => {
-    console.log('Chain changed:', chainId)
+    console.log('🔄 handleChainChanged called with:', chainId)
+    console.log('🔄 Type of chainId:', typeof chainId)
+    console.log('🔄 this.currentState before update:', this.currentState)
+    
     const numericChainId = parseInt(chainId, 16)
+    console.log('🔄 Parsed numeric chainId:', numericChainId)
+    
     const now = Date.now()
     
+    // Update state
     Web3Storage.setState({
       chainId: numericChainId,
       lastChanged: now
+    }).then(() => {
+      console.log('✅ Storage updated with new chainId')
+    }).catch(err => {
+      console.error('❌ Failed to update storage:', err)
     })
     
     // Send notification to UI
@@ -197,10 +218,25 @@ export class Web3Service {
         throw new Error('No accounts found. Please connect your wallet in MetaMask.')
       }
 
-      const connectedAccount = accounts[0] as Address
+      // Check if we're on the correct chain (Intuition Testnet)
       const numericChainId = parseInt(currentChainId, 16)
+      if (numericChainId !== 13579) {
+        console.log(`⚠️ Wrong chain detected: ${numericChainId}. Switching to Intuition Testnet...`)
+        try {
+          await this.checkAndSwitchToCorrectChain()
+          // Update chain ID after switching
+          currentChainId = '0x350B'
+        } catch (switchError: any) {
+          // If user rejects the switch, we continue but warn them
+          console.warn('User rejected network switch:', switchError)
+          // Don't throw here - let them connect on wrong network but show warning in UI
+        }
+      }
+
+      const connectedAccount = accounts[0] as Address
+      const finalChainId = parseInt(currentChainId, 16)
       
-      console.log('Setting up clients for:', { connectedAccount, numericChainId })
+      console.log('Setting up clients for:', { connectedAccount, chainId: finalChainId })
 
       // Set contract and clients
       await this.setContract(currentChainId, connectedAccount)
@@ -208,7 +244,7 @@ export class Web3Service {
       // Save state
       await Web3Storage.setState({
         connectedAddress: connectedAccount,
-        chainId: numericChainId,
+        chainId: finalChainId,
         isConnected: true,
         lastConnected: Date.now()
       })
@@ -217,7 +253,7 @@ export class Web3Service {
       this.isAuthenticated = true
 
       console.log('Wallet connected successfully')
-      return { success: true, address: connectedAccount, chainId: numericChainId }
+      return { success: true, address: connectedAccount, chainId: finalChainId }
 
     } catch (error: any) {
       console.error('Failed to connect wallet:', error)
@@ -304,6 +340,80 @@ export class Web3Service {
     }
   }
 
+  async switchToIntuitionTestnet() {
+    const provider = this.getProvider()
+    const chainIdHex = '0x350B' // 13579 in hex
+    
+    try {
+      console.log('Attempting to switch to Intuition Testnet...')
+      // Try to switch to the network
+      await provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: chainIdHex }]
+      })
+      console.log('✅ Switched to Intuition Testnet')
+      return true
+    } catch (error: any) {
+      console.error('Switch network error:', error)
+      // If network doesn't exist (error 4902), add it first
+      if (error.code === 4902) {
+        console.log('📡 Network not found, adding Intuition Testnet...')
+        return await this.addIntuitionTestnetToWallet()
+      } else {
+        throw new Error(`Failed to switch network: ${error.message || 'Unknown error'}`)
+      }
+    }
+  }
+
+  async addIntuitionTestnetToWallet() {
+    const provider = this.getProvider()
+    
+    try {
+      await provider.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x350B', // 13579 in hex
+          chainName: 'Intuition Testnet',
+          nativeCurrency: {
+            name: 'Testnet TRUST',
+            symbol: 'tTRUST',
+            decimals: 18
+          },
+          rpcUrls: ['https://testnet.rpc.intuition.systems'],
+          blockExplorerUrls: ['https://testnet.explorer.intuition.systems/']
+        }]
+      })
+      console.log('✅ Intuition Testnet added to wallet')
+      return true
+    } catch (error: any) {
+      console.error('❌ Failed to add network:', error)
+      if (error.code === 4001) {
+        throw new Error('User rejected adding Intuition Testnet')
+      }
+      throw new Error('Failed to add Intuition Testnet to your wallet')
+    }
+  }
+
+  async checkAndSwitchToCorrectChain() {
+    try {
+      const currentChain = await this.getProvider().request({ method: 'eth_chainId' })
+      const targetChainHex = '0x350B' // Intuition Testnet
+      
+      console.log(`Current chain: ${currentChain}, Target chain: ${targetChainHex}`)
+      
+      if (currentChain !== targetChainHex) {
+        console.log(`🔄 Wrong network detected. Switching to Intuition Testnet...`)
+        return await this.switchToIntuitionTestnet()
+      }
+      
+      console.log('✅ Already on correct chain')
+      return true
+    } catch (error: any) {
+      console.error('Failed to check/switch chain:', error)
+      throw error
+    }
+  }
+
   // Protocol methods - to be implemented
   async createAtoms(args: any, value: bigint) {
     if (!this.walletClient || !this.publicClient) {
@@ -312,6 +422,50 @@ export class Web3Service {
     
     // TODO: Implement using intuition-ts protocol functions
     throw new Error('createAtoms not yet implemented')
+  }
+
+  // Send native token transaction
+  async sendTransaction(to: Address, value: string) {
+    if (!this.walletClient || !this.publicClient) {
+      throw new Error('Wallet not connected')
+    }
+
+    try {
+      // Convert string value to bigint
+      const valueInWei = BigInt(value)
+      console.log('Sending transaction:', { to, value: valueInWei })
+      
+      // Send the transaction
+      const hash = await this.walletClient.sendTransaction({
+        to,
+        value: valueInWei,
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
+      })
+      
+      console.log('Transaction sent:', hash)
+      
+      // Wait for the transaction to be mined
+      const receipt = await this.publicClient.waitForTransactionReceipt({ 
+        hash,
+        confirmations: 1 
+      })
+      
+      console.log('Transaction confirmed:', receipt)
+      return { hash, receipt }
+    } catch (error: any) {
+      console.error('Transaction failed:', error)
+      
+      // Provide better error messages
+      if (error.code === 4001) {
+        throw new Error('User rejected the transaction')
+      }
+      if (error.message?.includes('insufficient funds')) {
+        throw new Error('Insufficient funds for transaction')
+      }
+      
+      throw new Error(`Transaction failed: ${error.message || 'Unknown error'}`)
+    }
   }
 
   // Getters
