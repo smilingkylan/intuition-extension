@@ -41,7 +41,7 @@ function ReviewStep() {
     const socialUpload = await uploadJSONToIPFS([socialAtomData])
     atomsToCreate.push({
       uri: `ipfs://${socialUpload[0].IpfsHash}`,
-      stake: atomStake
+      stake: atomStake.toString()
     })
 
     // 2. Optional image atom
@@ -56,7 +56,7 @@ function ReviewStep() {
       const imageUpload = await uploadJSONToIPFS([imageAtomData])
       atomsToCreate.push({
         uri: `ipfs://${imageUpload[0].IpfsHash}`,
-        stake: atomStake
+        stake: atomStake.toString()
       })
     }
 
@@ -71,7 +71,7 @@ function ReviewStep() {
       const identityUpload = await uploadJSONToIPFS([identityAtomData])
       atomsToCreate.push({
         uri: `ipfs://${identityUpload[0].IpfsHash}`,
-        stake: atomStake
+        stake: atomStake.toString()
       })
     }
 
@@ -80,7 +80,9 @@ function ReviewStep() {
 
   const handleNext = async () => {
     try {
+      console.log('handleNext prepareTransactions')
       const txData = await prepareTransactions()
+      console.log('handleNext txData', txData)
       setTransactionData(txData)
       navigate({ to: '/create-atom/process' })
     } catch (error) {

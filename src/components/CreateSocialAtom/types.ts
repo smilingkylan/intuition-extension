@@ -28,13 +28,13 @@ export interface SocialAtomFormData {
 export interface TransactionData {
   atomsToCreate: Array<{
     uri: string
-    stake: bigint
+    stake: string  // Changed from bigint to string
   }>
   triplesToCreate: Array<{
     subjectId: string
     predicateId: string
     objectId: string
-    stake: bigint
+    stake: string  // Changed from bigint to string
   }>
 }
 

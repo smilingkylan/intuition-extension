@@ -194,11 +194,14 @@ export class TwitterMouseTracker {
   private collectUsername(username: string) {
     if (username && !this.collectedUsernames.has(username)) {
       this.collectedUsernames.add(username)
-      this.scheduleAtomCreation()
+      // Automatic atom creation disabled - atoms are now created through the sidepanel UI
+      // this.scheduleAtomCreation()
     }
   }
 
   private scheduleAtomCreation() {
+    // Automatic atom creation disabled - atoms are now created through the sidepanel UI
+    /*
     // Clear existing timer
     if (this.atomCreationTimer) {
       clearTimeout(this.atomCreationTimer)
@@ -208,9 +211,12 @@ export class TwitterMouseTracker {
     this.atomCreationTimer = setTimeout(() => {
       this.createAtomsForCollectedUsernames()
     }, 2000)
+    */
   }
 
   private async createAtomsForCollectedUsernames() {
+    // Automatic atom creation disabled - atoms are now created through the sidepanel UI
+    /*
     const usernames = Array.from(this.collectedUsernames)
     if (usernames.length === 0) return
 
@@ -229,6 +235,7 @@ export class TwitterMouseTracker {
     } catch (error) {
       console.error('Failed to trigger atom creation:', error)
     }
+    */
   }
 
   private sendTweetData(data: TweetData | null) {

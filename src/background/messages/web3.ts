@@ -64,11 +64,6 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
           res.send({ success: true, data: walletData })
           break
           
-        case 'CREATE_ATOMS':
-          const atomResult = await web3Service.createAtoms(data.args, data.value)
-          res.send({ success: true, data: atomResult })
-          break
-          
         default:
           res.send({ success: false, error: 'Unknown action' })
       }

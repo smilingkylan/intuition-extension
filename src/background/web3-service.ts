@@ -7,10 +7,21 @@ import {
   type PublicClient,
   type WalletClient,
   type Address,
-  type Chain
+  type Chain,
+  parseEther,
+  toHex,
+  encodeFunctionData,
+  parseEventLogs
 } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
 import { Web3Storage, type Web3State } from '../lib/storage'
+import { 
+  createAtoms, 
+  createTriples, 
+  eventParseAtomCreated,
+  getAtomCost 
+} from '@0xintuition/protocol'
+import { CONFIG } from '~/constants'
 
 export class Web3Service {
   private provider: any = null
@@ -262,14 +273,220 @@ export class Web3Service {
     }
   }
 
-  // Protocol methods - to be implemented
-  async createAtoms(args: any, value: bigint) {
+  // Protocol methods
+  async createAtoms(params: {
+    atoms: Array<{ data: string; initialDeposit: string }>
+    value?: string
+  }) {
     if (!this.walletClient || !this.publicClient) {
       throw new Error('Wallet not connected')
     }
+
+    const config = {
+      address: CONFIG.I8N_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CONFIG.CONTRACT_ABI,
+      walletClient: this.walletClient,
+      publicClient: this.publicClient,
+    }
+
+    // Convert string amounts to bigints
+    const atomsToCreate = params.atoms.map(atom => ({
+      data: atom.data,
+      initialDeposit: parseEther(atom.initialDeposit)
+    }))
+
+    console.log('atomsToCreate', atomsToCreate)
+    // Calculate total value if not provided
+    let totalValue = params.value ? parseEther(params.value) : 0n
+    console.log('totalValue', totalValue)
+    if (!params.value) {
+      // Auto-calculate including protocol fees
+      for (const atom of atomsToCreate) {
+        const { result: atomCost } = await this.publicClient.readContract({
+          ...config,
+          functionName: 'getAtomCost',
+          args: []
+        }) as { result: bigint }
+        totalValue += atom.initialDeposit + atomCost
+      }
+    }
+
+
+    const txHash = await createAtoms(config, { 
+      args: [
+        atomsToCreate.map(atom => toHex(atom.data)), // Array of hex-encoded data
+        atomsToCreate.map(atom => atom.initialDeposit) // Array of initial deposits
+      ],
+      value: totalValue
+    })
+
+    console.log('txHash', txHash)
+    // Wait for confirmation and parse events
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: txHash })
     
-    // TODO: Implement using intuition-ts protocol functions
-    throw new Error('createAtoms not yet implemented')
+    const atomIds = receipt?.logs
+      .map(log => {
+        try {
+          return eventParseAtomCreated(log)
+        } catch {
+          return null
+        }
+      })
+      .filter(Boolean)
+      .map(event => event!.args.atomId.toString())
+
+    return {
+      transactionHash: txHash,
+      atomIds,
+      receipt
+    }
+  }
+
+  // Generic triple creation
+  async createTriples(params: {
+    triples: Array<{
+      subjectId: string
+      predicateId: string
+      objectId: string
+      initialDeposit: string
+    }>
+    value?: string
+  }) {
+    if (!this.walletClient || !this.publicClient) {
+      throw new Error('Wallet not connected')
+    }
+
+    const config = {
+      address: CONFIG.I8N_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CONFIG.CONTRACT_ABI,
+      walletClient: this.walletClient,
+      publicClient: this.publicClient,
+    }
+
+    const triplesToCreate = params.triples.map(triple => ({
+      subjectId: triple.subjectId,
+      predicateId: triple.predicateId,
+      objectId: triple.objectId,
+      initialDeposit: parseEther(triple.initialDeposit)
+    }))
+
+    const totalValue = params.value 
+      ? parseEther(params.value)
+      : triplesToCreate.reduce((sum, t) => sum + t.initialDeposit, 0n)
+
+    const txHash = await createTriples(config, { 
+      triples: triplesToCreate,
+      value: totalValue
+    })
+
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+
+    // Parse triple created events
+    const tripleEvents = parseEventLogs({
+      abi: CONFIG.CONTRACT_ABI,
+      logs: receipt.logs,
+      eventName: 'TripleCreated'
+    })
+
+    const tripleIds = tripleEvents.map(event => event.args.vaultID?.toString() || event.args.tripleId?.toString())
+
+    return {
+      transactionHash: txHash,
+      tripleIds,
+      receipt
+    }
+  }
+
+  // Helper method to check if atom exists
+  async getAtomIdByData(data: string): Promise<string> {
+    if (!this.publicClient) {
+      throw new Error('Public client not initialized')
+    }
+
+    const { result } = await this.publicClient.readContract({
+      address: CONFIG.I8N_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CONFIG.CONTRACT_ABI,
+      functionName: 'getAtomIdByData',
+      args: [data]
+    }) as { result: `0x${string}` }
+
+    return result
+  }
+
+  // Get atom cost including protocol fee
+  async getAtomCost(initialDeposit: string): Promise<string> {
+    if (!this.publicClient) {
+      throw new Error('Public client not initialized')
+    }
+
+    const config = {
+      address: CONFIG.I8N_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CONFIG.CONTRACT_ABI,
+      publicClient: this.publicClient,
+    }
+
+    const { result: atomCost } = await this.publicClient.readContract({
+      ...config,
+      functionName: 'getAtomCost',
+      args: []
+    }) as { result: bigint }
+
+    return atomCost.toString()
+  }
+
+  // Estimate gas for atom creation
+  async estimateAtomCreationGas(params: {
+    atoms: Array<{ data: string; initialDeposit: string }>
+  }) {
+    if (!this.publicClient || !this.walletClient) {
+      throw new Error('Wallet not connected')
+    }
+
+    const account = this.walletClient.account
+    if (!account) {
+      throw new Error('No account found')
+    }
+
+    const config = {
+      address: CONFIG.I8N_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CONFIG.CONTRACT_ABI,
+      publicClient: this.publicClient,
+    }
+
+    const atomsToCreate = params.atoms.map(atom => ({
+      data: atom.data,
+      initialDeposit: parseEther(atom.initialDeposit)
+    }))
+
+    // Calculate total value including protocol fees
+    let totalValue = 0n
+    for (const atom of atomsToCreate) {
+      const { result: atomCost } = await this.publicClient.readContract({
+        ...config,
+        functionName: 'getAtomCost',
+        args: []
+      }) as { result: bigint }
+      totalValue += atom.initialDeposit + atomCost
+    }
+
+    const gas = await this.publicClient.estimateGas({
+      account: account.address,
+      to: config.address,
+      data: encodeFunctionData({
+        abi: config.abi,
+        functionName: 'createAtoms',
+        args: [
+          atomsToCreate.map(a => toHex(a.data)),
+          atomsToCreate.map(a => a.initialDeposit)
+        ]
+      }),
+      value: totalValue
+    })
+
+    return {
+      gas: gas.toString(),
+      totalValue: totalValue.toString()
+    }
   }
 
   // Getters
