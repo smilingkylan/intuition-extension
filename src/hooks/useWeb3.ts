@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { sendToBackground } from '@plasmohq/messaging'
 import type { Web3State } from '../lib/storage'
 import { INTUITION_TESTNET } from '../../common/constants/web3'
+import { toast } from '../../common/hooks/use-toast'
 
 export function useWeb3() {
   const [state, setState] = useState<Web3State>({
@@ -25,6 +26,20 @@ export function useWeb3() {
       if (message.type === 'WEB3_STATE_CHANGED') {
         console.log('Web3 state changed:', message.data)
         setState(message.data)
+      } else if (message.type === 'ACCOUNT_CHANGED_NOTIFICATION') {
+        const { newAccount } = message.data
+        toast({
+          title: "Account Changed",
+          description: `Switched to ${newAccount.slice(0,6)}...${newAccount.slice(-4)}`,
+          duration: 4000,
+        })
+      } else if (message.type === 'CHAIN_CHANGED_NOTIFICATION') {
+        const { chainName } = message.data
+        toast({
+          title: "Network Changed", 
+          description: `Switched to ${chainName}`,
+          duration: 4000,
+        })
       }
     }
 

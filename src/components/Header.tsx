@@ -17,6 +17,7 @@ export const Header = () => {
     isConnected, 
     connectedAddress, 
     chainId, 
+    lastChanged,
     isConnecting,
     error,
     connectWallet, 
@@ -117,16 +118,21 @@ export const Header = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="gap-2 px-3 h-8"
+              className="gap-2 px-3 h-8 relative"
               disabled={isConnecting}
             >
               {isConnected ? (
                 <>
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute h-2 w-2 rounded-full bg-green-500 animate-ping" />
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                  </div>
                   <WalletIcon className="h-3.5 w-3.5" />
                   <span className="text-sm">{getShortAddress(connectedAddress)}</span>
                 </>
               ) : (
                 <>
+                  <div className="h-2 w-2 rounded-full bg-gray-400" />
                   <UserIcon className="h-3.5 w-3.5" />
                   <span className="text-sm">{isConnecting ? 'Connecting...' : 'Log in'}</span>
                 </>
@@ -153,6 +159,11 @@ export const Header = () => {
                       {getNetworkName(chainId)}
                     </Badge>
                   </div>
+                  {lastChanged && (
+                    <div className="px-2 py-1 text-xs text-muted-foreground">
+                      Last updated: {new Date(lastChanged).toLocaleTimeString()}
+                    </div>
+                  )}
                   <Separator className="my-1" />
                   <Button
                     variant="ghost"

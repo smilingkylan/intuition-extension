@@ -104,8 +104,22 @@ export class Web3Service {
       // Update current account
       const newAccount = accounts[0].toLowerCase()
       if (this.currentState.connectedAddress?.toLowerCase() !== newAccount) {
+        const now = Date.now()
         Web3Storage.setState({
-          connectedAddress: newAccount as Address
+          connectedAddress: newAccount as Address,
+          lastChanged: now
+        })
+        
+        // Send notification to UI
+        chrome.runtime.sendMessage({
+          type: 'ACCOUNT_CHANGED_NOTIFICATION',
+          data: { 
+            newAccount: newAccount,
+            timestamp: now
+          }
+        }).catch(err => {
+          // Ignore errors from no listeners
+          console.log('No listeners for account change notification')
         })
       }
     }
@@ -117,9 +131,26 @@ export class Web3Service {
   private handleChainChanged = (chainId: string) => {
     console.log('Chain changed:', chainId)
     const numericChainId = parseInt(chainId, 16)
+    const now = Date.now()
+    
     Web3Storage.setState({
-      chainId: numericChainId
+      chainId: numericChainId,
+      lastChanged: now
     })
+    
+    // Send notification to UI
+    chrome.runtime.sendMessage({
+      type: 'CHAIN_CHANGED_NOTIFICATION', 
+      data: {
+        chainId: numericChainId,
+        chainName: this.getNetworkName(numericChainId),
+        timestamp: now
+      }
+    }).catch(err => {
+      // Ignore errors from no listeners
+      console.log('No listeners for chain change notification')
+    })
+    
     // Reinitialize clients with new chain
     if (this.currentState.connectedAddress) {
       this.setContract(chainId)
@@ -267,6 +298,19 @@ export class Web3Service {
       default:
         console.warn(`Unknown chain ID: ${chainId}, defaulting to mainnet`)
         return mainnet
+    }
+  }
+
+  private getNetworkName(chainId: number): string {
+    switch (chainId) {
+      case 1:
+        return 'Ethereum Mainnet'
+      case 11155111:
+        return 'Sepolia'
+      case 13579:
+        return 'Intuition Testnet'
+      default:
+        return `Chain ${chainId}`
     }
   }
 

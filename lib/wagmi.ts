@@ -1,9 +1,10 @@
 import { createConfig, http } from 'wagmi'
 import { base, baseSepolia } from 'wagmi/chains'
 import { metaMask, walletConnect, coinbaseWallet } from 'wagmi/connectors'
+import { intuitionTestnet } from '~/constants/intuitionTestnet'
 
 export const wagmiConfig = createConfig({
-  chains: [base, baseSepolia],
+  chains: [base, baseSepolia, intuitionTestnet],
   connectors: [
     metaMask(),
     walletConnect({ 
@@ -16,5 +17,6 @@ export const wagmiConfig = createConfig({
   transports: {
     [base.id]: http(),
     [baseSepolia.id]: http(),
+    [intuitionTestnet.id]: http()
   },
 })

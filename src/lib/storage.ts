@@ -4,6 +4,7 @@ export interface Web3State {
   chainId: number | null
   isConnected: boolean
   lastConnected: number | null
+  lastChanged?: number | null // Track when account or network last changed
 }
 
 export class Web3Storage {
@@ -15,7 +16,8 @@ export class Web3Storage {
       connectedAddress: null,
       chainId: null,
       isConnected: false,
-      lastConnected: null
+      lastConnected: null,
+      lastChanged: null
     }
   }
 
@@ -39,7 +41,8 @@ export class Web3Storage {
         connectedAddress: null,
         chainId: null,
         isConnected: false,
-        lastConnected: null
+        lastConnected: null,
+        lastChanged: null
       }
     })
   }
