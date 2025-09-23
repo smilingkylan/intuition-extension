@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { sendToBackground } from '@plasmohq/messaging'
 import type { Web3State } from '../lib/storage'
-import { INTUITION_TESTNET } from '../../common/constants/web3'
-import { toast } from '../../common/hooks/use-toast'
+import { INTUITION_TESTNET } from '~/constants/web3'
+import { toast } from '~/hooks/use-toast'
 
 export function useWeb3() {
   const [state, setState] = useState<Web3State>({

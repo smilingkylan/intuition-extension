@@ -194,6 +194,7 @@ export function Dashboard() {
       {/* Atom Display for Tweet Author */}
       <AtomDisplay 
         identifier={currentTweet?.username}
+        platform="x.com"
         formatLabel={(username) => `x.com:${username.toLowerCase()}`}
         title="Tweet Author Atom"
         notFoundMessage={`No Intuition atom found for @${currentTweet?.username || 'this user'}`}

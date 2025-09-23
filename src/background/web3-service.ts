@@ -7,11 +7,22 @@ import {
   type PublicClient,
   type WalletClient,
   type Address,
-  type Chain
+  type Chain,
+  parseEther,
+  toHex,
+  encodeFunctionData,
+  parseEventLogs
 } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
 import { Web3Storage, type Web3State } from '../lib/storage'
 import { intuitionTestnet } from '~/constants/intuitionTestnet'
+import { 
+  createAtoms as protocolCreateAtoms, 
+  createTriples as protocolCreateTriples,
+  eventParseAtomCreated,
+  getAtomCost 
+} from '@0xintuition/protocol'
+import { INTUITION_TESTNET } from '../../common/constants/web3'
 
 export class Web3Service {
   private provider: any = null
@@ -414,14 +425,179 @@ export class Web3Service {
     }
   }
 
-  // Protocol methods - to be implemented
-  async createAtoms(args: any, value: bigint) {
+  // Protocol methods
+  async createAtoms(params: {
+    atoms: Array<{ data: string; initialDeposit: string }>
+  }) {
     if (!this.walletClient || !this.publicClient) {
       throw new Error('Wallet not connected')
     }
-    
-    // TODO: Implement using intuition-ts protocol functions
-    throw new Error('createAtoms not yet implemented')
+
+    console.log('Creating atoms:', params.atoms)
+
+    try {
+      // Prepare atoms for creation
+      const atomsToCreate = params.atoms.map(atom => ({
+        data: atom.data, // Should already be hex-encoded (e.g., ipfs://...)
+        initialDeposit: parseEther(atom.initialDeposit)
+      }))
+
+      // Calculate total value needed
+      let totalValue = BigInt(0)
+      for (const atom of atomsToCreate) {
+        // Get atom creation cost
+        const atomCost = await this.publicClient.readContract({
+          address: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
+          abi: INTUITION_TESTNET.CONTRACT_ABI,
+          functionName: 'getAtomCost',
+          args: []
+        }) as bigint
+        
+        console.log('Atom cost:', atomCost.toString(), 'Initial deposit:', atom.initialDeposit.toString())
+        totalValue += atom.initialDeposit + atomCost
+      }
+
+      console.log('Total value needed:', totalValue.toString())
+
+      // Create atoms using the protocol function
+      const config = {
+        address: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
+        abi: INTUITION_TESTNET.CONTRACT_ABI,
+        walletClient: this.walletClient,
+        publicClient: this.publicClient,
+      }
+
+      const txHash = await protocolCreateAtoms(config, { 
+        args: [
+          atomsToCreate.map(atom => toHex(atom.data)), // Array of hex-encoded data
+          atomsToCreate.map(atom => atom.initialDeposit) // Array of initial deposits
+        ],
+        value: totalValue
+      })
+
+      console.log('Create atoms transaction hash:', txHash)
+
+      // Wait for confirmation and parse events
+      const receipt = await this.publicClient.waitForTransactionReceipt({ 
+        hash: txHash,
+        confirmations: 1 
+      })
+
+      // Parse the created atom IDs from events
+      const atomIds: string[] = []
+      const parsedLogs = parseEventLogs({
+        abi: INTUITION_TESTNET.CONTRACT_ABI,
+        logs: receipt.logs,
+        eventName: 'AtomCreated'
+      })
+
+      for (const log of parsedLogs) {
+        if (log.eventName === 'AtomCreated' && log.args) {
+          const atomId = (log.args as any).atomId || (log.args as any).atom?.atomId
+          if (atomId) {
+            atomIds.push(atomId.toString())
+          }
+        }
+      }
+
+      console.log('Created atom IDs:', atomIds)
+
+      return {
+        transactionHash: txHash,
+        atomIds,
+        receipt
+      }
+    } catch (error: any) {
+      console.error('Create atoms failed:', error)
+      
+      // Provide better error messages
+      if (error.code === 4001) {
+        throw new Error('User rejected the transaction')
+      }
+      if (error.message?.includes('insufficient funds')) {
+        throw new Error('Insufficient funds for transaction')
+      }
+      
+      throw new Error(`Failed to create atoms: ${error.message || 'Unknown error'}`)
+    }
+  }
+
+  // Create triples (relationships between atoms)
+  async createTriples(params: {
+    triples: Array<{
+      subjectId: string
+      predicateId: string
+      objectId: string
+      initialDeposit: string
+    }>
+  }) {
+    if (!this.walletClient || !this.publicClient) {
+      throw new Error('Wallet not connected')
+    }
+
+    console.log('Creating triples:', params.triples)
+
+    try {
+      // Prepare triples for creation
+      const triplesToCreate = params.triples.map(triple => ({
+        subjectId: BigInt(triple.subjectId),
+        predicateId: BigInt(triple.predicateId),
+        objectId: BigInt(triple.objectId),
+        initialDeposit: parseEther(triple.initialDeposit)
+      }))
+
+      // Calculate total value needed
+      let totalValue = BigInt(0)
+      for (const triple of triplesToCreate) {
+        // For triples, we just need the initial deposit
+        totalValue += triple.initialDeposit
+      }
+
+      console.log('Total value needed for triples:', totalValue.toString())
+
+      // Create triples using the protocol function
+      const config = {
+        address: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
+        abi: INTUITION_TESTNET.CONTRACT_ABI,
+        walletClient: this.walletClient,
+        publicClient: this.publicClient,
+      }
+
+      const txHash = await protocolCreateTriples(config, { 
+        args: [
+          triplesToCreate.map(t => t.subjectId),
+          triplesToCreate.map(t => t.predicateId),
+          triplesToCreate.map(t => t.objectId),
+          triplesToCreate.map(t => t.initialDeposit)
+        ],
+        value: totalValue
+      })
+
+      console.log('Create triples transaction hash:', txHash)
+
+      // Wait for confirmation
+      const receipt = await this.publicClient.waitForTransactionReceipt({ 
+        hash: txHash,
+        confirmations: 1 
+      })
+
+      return {
+        transactionHash: txHash,
+        receipt
+      }
+    } catch (error: any) {
+      console.error('Create triples failed:', error)
+      
+      // Provide better error messages
+      if (error.code === 4001) {
+        throw new Error('User rejected the transaction')
+      }
+      if (error.message?.includes('insufficient funds')) {
+        throw new Error('Insufficient funds for transaction')
+      }
+      
+      throw new Error(`Failed to create triples: ${error.message || 'Unknown error'}`)
+    }
   }
 
   // Send native token transaction

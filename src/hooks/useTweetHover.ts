@@ -8,8 +8,15 @@ export function useTweetHover() {
   useEffect(() => {
     const handleMessage = (message: any) => {
       if (isTweetHoveredMessage(message)) {
-        setCurrentTweet(message.data)
+        // Update hovering state based on whether we're actively hovering
         setIsHovering(message.data !== null)
+        
+        // Only update currentTweet when we have new data (not when clearing)
+        // This keeps the last tweet visible until a new one is hovered
+        if (message.data !== null) {
+          setCurrentTweet(message.data)
+        }
+        // Note: We DON'T clear currentTweet when message.data is null
       }
     }
 

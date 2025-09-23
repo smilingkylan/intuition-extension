@@ -9,6 +9,7 @@ import { formatUnits } from 'viem'
 import { useAtomByLabel, useAtomByName } from '../hooks/useAtomByName'
 import { AtomIcon } from '~/components/AtomIcon'
 import { formatSocialAtomLabel } from '~/util/api'
+import { useNavigate } from '@tanstack/react-router'
 
 interface AtomDisplayProps {
   // The identifier to search for
@@ -21,6 +22,8 @@ interface AtomDisplayProps {
   notFoundMessage?: string
   // Custom label formatter
   formatLabel?: (identifier: string) => string
+  // Platform for social media atoms (e.g., "x.com")
+  platform?: string
 }
 
 export function AtomDisplay({ 
@@ -28,8 +31,11 @@ export function AtomDisplay({
   identifierPrefix,
   title = "Intuition Atom",
   notFoundMessage = "No atom found",
-  formatLabel
+  formatLabel,
+  platform
 }: AtomDisplayProps) {
+  const navigate = useNavigate()
+  
   // Format the search query
   const searchQuery = React.useMemo(() => {
     if (!identifier) return null
@@ -198,14 +204,16 @@ export function AtomDisplay({
               variant="outline"
               size="sm"
               onClick={() => {
-                const createUrl = searchQuery 
-                  ? `https://dev.portal.intuition.systems/app/create?data=${encodeURIComponent(searchQuery)}`
-                  : 'https://dev.portal.intuition.systems/app/create'
-                window.open(createUrl, '_blank')
+                if (platform && identifier) {
+                  navigate({ 
+                    to: '/create-atom/', 
+                    search: { platform, username: identifier } 
+                  })
+                }
               }}
             >
               Create Atom
-              <ExternalLinkIcon className="h-3 w-3 ml-2" />
+              {!platform && <ExternalLinkIcon className="h-3 w-3 ml-2" />}
             </Button>
           </div>
         )}

@@ -103,7 +103,7 @@ export class TwitterMouseTracker {
     const username = this.extractUsername(article)
     
     // Collect username for atom creation
-    this.collectUsername(username)
+    // this.collectUsername(username)
     
     return {
       tweetId: this.extractTweetId(article),
