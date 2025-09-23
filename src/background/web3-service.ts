@@ -17,8 +17,8 @@ import { mainnet, sepolia } from 'viem/chains'
 import { Web3Storage, type Web3State } from '../lib/storage'
 import { intuitionTestnet } from '~/constants/intuitionTestnet'
 import { 
-  createAtoms as protocolCreateAtoms, 
-  createTriples as protocolCreateTriples,
+  createAtomsEncode,
+  createTriplesEncode,
   eventParseAtomCreated,
   getAtomCost 
 } from '@0xintuition/protocol'
@@ -459,20 +459,19 @@ export class Web3Service {
 
       console.log('Total value needed:', totalValue.toString())
 
-      // Create atoms using the protocol function
-      const config = {
-        address: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
-        abi: INTUITION_TESTNET.CONTRACT_ABI,
-        walletClient: this.walletClient,
-        publicClient: this.publicClient,
-      }
+      // Use the pre-built encoder to avoid dynamic imports
+      const encodedData = createAtomsEncode(
+        atomsToCreate.map(atom => toHex(atom.data)), // Array of hex-encoded data
+        atomsToCreate.map(atom => atom.initialDeposit) // Array of initial deposits
+      )
 
-      const txHash = await protocolCreateAtoms(config, { 
-        args: [
-          atomsToCreate.map(atom => toHex(atom.data)), // Array of hex-encoded data
-          atomsToCreate.map(atom => atom.initialDeposit) // Array of initial deposits
-        ],
-        value: totalValue
+      // Send raw transaction (no simulation needed)
+      const txHash = await this.walletClient.sendTransaction({
+        to: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
+        data: encodedData,
+        value: totalValue,
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
       })
 
       console.log('Create atoms transaction hash:', txHash)
@@ -555,22 +554,21 @@ export class Web3Service {
 
       console.log('Total value needed for triples:', totalValue.toString())
 
-      // Create triples using the protocol function
-      const config = {
-        address: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
-        abi: INTUITION_TESTNET.CONTRACT_ABI,
-        walletClient: this.walletClient,
-        publicClient: this.publicClient,
-      }
+      // Use the pre-built encoder to avoid dynamic imports
+      const encodedData = createTriplesEncode(
+        triplesToCreate.map(t => toHex(t.subjectId.toString())), // Convert to hex
+        triplesToCreate.map(t => toHex(t.predicateId.toString())), // Convert to hex
+        triplesToCreate.map(t => toHex(t.objectId.toString())), // Convert to hex
+        triplesToCreate.map(t => t.initialDeposit)
+      )
 
-      const txHash = await protocolCreateTriples(config, { 
-        args: [
-          triplesToCreate.map(t => t.subjectId),
-          triplesToCreate.map(t => t.predicateId),
-          triplesToCreate.map(t => t.objectId),
-          triplesToCreate.map(t => t.initialDeposit)
-        ],
-        value: totalValue
+      // Send raw transaction (no simulation needed)
+      const txHash = await this.walletClient.sendTransaction({
+        to: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
+        data: encodedData,
+        value: totalValue,
+        chain: this.walletClient.chain,
+        account: this.walletClient.account!,
       })
 
       console.log('Create triples transaction hash:', txHash)
