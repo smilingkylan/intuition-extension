@@ -220,12 +220,12 @@ export class TwitterMouseTracker {
     console.log(`Creating atoms for ${usernames.length} usernames:`, usernames)
 
     try {
-      await sendToBackground({
-        name: "create-atoms",
-        body: {
-          usernames
-        }
-      })
+      // await sendToBackground({
+      //   name: "create-atoms",
+      //   body: {
+      //     usernames
+      //   }
+      // })
       
       // Clear the collected usernames after sending
       this.collectedUsernames.clear()
