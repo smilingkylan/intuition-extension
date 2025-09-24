@@ -10,6 +10,7 @@ import { router } from './router'
 import { ThemeProvider } from "~/components/ThemeProvider"
 import { Toaster } from "~/components/ui/toaster"
 import { ModeProvider } from "./hooks/useModeContext"
+import { TransactionProvider } from "./providers/TransactionProvider"
 
 const queryClient = new QueryClient()
 
@@ -18,8 +19,10 @@ function SidePanel() {
     <ThemeProvider defaultTheme="system" storageKey="intuition-theme">
       <ModeProvider defaultMode="explore">
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-          <Toaster />
+          <TransactionProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </TransactionProvider>
         </QueryClientProvider>
       </ModeProvider>
     </ThemeProvider>

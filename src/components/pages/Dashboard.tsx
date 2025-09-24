@@ -15,6 +15,7 @@ import { TweetDisplay } from '../TweetDisplay'
 import { AtomDisplay } from '../AtomDisplay'
 import { AtomCreationStatus } from '../AtomCreationStatus'
 import { NetworkWarning } from '../NetworkWarning'
+import { RandomAtomCreator } from '../RandomAtomCreator'
 import { formatSocialAtomLabel } from '~/util/api'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon, SendIcon } from 'lucide-react'
 
@@ -93,6 +94,9 @@ export function Dashboard() {
     <div className="px-6 pt-8 pb-6 space-y-6">
       {/* Network Warning - Shows when on wrong network */}
       <NetworkWarning />
+      
+      {/* Random Atom Creator */}
+      <RandomAtomCreator />
       
       <div className="flex justify-between items-center">
         <div>
