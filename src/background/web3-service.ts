@@ -95,17 +95,27 @@ export class Web3Service {
     return false
   }
 
-  private handleAccountsChanged = (accounts: string[]) => {
+  private handleAccountsChanged = async (accounts: string[]) => {
     console.log('Accounts changed:', accounts)
     if (accounts.length === 0) {
       this.disconnect()
     } else {
       // Update current account
-      const newAccount = accounts[0].toLowerCase()
+      const newAccount = accounts[0].toLowerCase() as Address
       if (this.currentState.connectedAddress?.toLowerCase() !== newAccount) {
-        Web3Storage.setState({
-          connectedAddress: newAccount as Address
+        // Update the state
+        await Web3Storage.setState({
+          connectedAddress: newAccount
         })
+        
+        // Update the current state
+        this.currentState = await Web3Storage.getState()
+        
+        // Reinitialize clients with new account
+        if (this.currentState.chainId) {
+          const chainIdHex = `0x${this.currentState.chainId.toString(16)}`
+          await this.setContract(chainIdHex, newAccount)
+        }
       }
     }
   }
@@ -297,16 +307,47 @@ export class Web3Service {
 
       // Execute the transaction directly
       console.log('Executing createAtoms transaction...')
+      
+      // Estimate gas first
+      let estimatedGas: bigint
+      try {
+        estimatedGas = await this.publicClient.estimateContractGas({
+          account,
+          address: CONFIG.I8N_CONTRACT_ADDRESS as Address,
+          abi: CONFIG.CONTRACT_ABI,
+          functionName: 'createAtoms',
+          args: [processedData, assets],
+          value: value,
+        })
+        
+        // Add 20% buffer to estimated gas
+        estimatedGas = (estimatedGas * 120n) / 100n
+        
+        // Cap at reasonable maximum (1M gas)
+        const maxGasLimit = 1000000n
+        estimatedGas = estimatedGas > maxGasLimit ? maxGasLimit : estimatedGas
+      } catch (error) {
+        console.warn('Gas estimation failed, using default:', error)
+        estimatedGas = 500000n // Default fallback
+      }
+      
+      // Set reasonable fee caps for testnet
+      const maxFeePerGas = 50000000000n // 50 gwei max
+      const maxPriorityFeePerGas = 2000000000n // 2 gwei priority
+      
       const txHash = await this.walletClient.writeContract({
         account,
         address: CONFIG.I8N_CONTRACT_ADDRESS as Address,
         abi: CONFIG.CONTRACT_ABI,
         functionName: 'createAtoms',
-        args: [processedData, processedAssets],
-        value: processedValue,
+        args: [processedData, assets],
+        value: value,
+        gas: estimatedGas,
+        maxFeePerGas: maxFeePerGas,
+        maxPriorityFeePerGas: maxPriorityFeePerGas,
       })
       
-      console.log('Transaction sent:', txHash)
+      console.log('Transaction sent with gas:', estimatedGas.toString(), txHash)
 
       // Wait for transaction receipt
       const receipt = await this.publicClient.waitForTransactionReceipt({
