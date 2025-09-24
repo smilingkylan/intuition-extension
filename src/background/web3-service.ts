@@ -7,9 +7,14 @@ import {
   type PublicClient,
   type WalletClient,
   type Address,
+  type Hex,
+  fromHex,
+  toHex,
 } from 'viem'
 import { Web3Storage, type Web3State } from '../lib/storage'
 import { CONFIG } from '~/constants/web3'
+import { uploadJSONToIPFS } from '~/util/fetch'
+import { eventParseAtomCreated } from '@0xintuition/protocol'
 
 export class Web3Service {
   private provider: any = null
@@ -258,13 +263,98 @@ export class Web3Service {
   }
 
   // Protocol methods - to be implemented
-  async createAtoms(args: any, value: bigint) {
+  async createAtoms(data: Hex[], assets: bigint[], value: bigint) {
     if (!this.walletClient || !this.publicClient) {
       throw new Error('Wallet not connected')
     }
+
+    const account = this.currentState.connectedAddress as Address
+    const chainId = this.currentState.chainId
     
-    // TODO: Implement using intuition-ts protocol functions
-    throw new Error('createAtoms not yet implemented')
+    if (!account || !chainId) {
+      throw new Error('No account or chain ID available')
+    }
+
+    try {
+      console.log('Creating atoms with params:', { data, assets, value })
+
+      // Process data - upload JSON to IPFS if needed
+      const processedData = await Promise.all(data.map(async (item) => {
+        try {
+          const jsonStr = fromHex(item, 'string')
+          const jsonData = JSON.parse(jsonStr)
+          
+          console.log('Uploading to IPFS:', jsonData)
+          const [fileData] = await uploadJSONToIPFS([jsonData])
+          const ipfsUri = `ipfs://${fileData.IpfsHash}`
+          
+          return toHex(ipfsUri)
+        } catch {
+          // If not JSON, assume it's already a URI or other data
+          return item
+        }
+      }))
+
+      // First, simulate the contract call to ensure it will succeed
+      console.log('Simulating createAtoms transaction...')
+      const { request } = await this.publicClient.simulateContract({
+        account,
+        address: CONFIG.I8N_CONTRACT_ADDRESS as Address,
+        abi: CONFIG.CONTRACT_ABI,
+        functionName: 'createAtoms',
+        args: [processedData, assets],
+        value,
+      })
+
+      console.log('Simulation successful, executing transaction...')
+      
+      // Execute the transaction using the simulated request
+      const txHash = await this.walletClient.writeContract(request)
+      console.log('Transaction sent:', txHash)
+
+      // Wait for transaction receipt
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 1,
+      })
+
+      console.log('Transaction confirmed:', receipt)
+
+      // Parse the event to get atom IDs
+      const [event] = await eventParseAtomCreated(this.publicClient, txHash)
+      const atomId = event.args.atomId || event.args.termId // Handle both possible field names
+
+      return {
+        success: true,
+        transactionHash: txHash,
+        atomId: atomId?.toString(),
+        event,
+        receipt
+      }
+    } catch (error: any) {
+      console.error('Failed to create atoms:', error)
+      
+      // Parse simulation/contract errors for more helpful messages
+      let errorMessage = error.message || 'Unknown error'
+      if (error.cause) {
+        // Extract revert reason from simulation error
+        const revertReason = error.cause.reason || error.cause.message
+        if (revertReason) {
+          errorMessage = `Transaction would revert: ${revertReason}`
+        }
+      } else if (error.shortMessage) {
+        errorMessage = error.shortMessage
+      }
+      
+      // Check for common errors
+      if (errorMessage.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for transaction'
+      } else if (errorMessage.includes('user rejected')) {
+        errorMessage = 'Transaction rejected by user'
+      }
+      
+      throw new Error(errorMessage)
+    }
   }
 
   // Getters

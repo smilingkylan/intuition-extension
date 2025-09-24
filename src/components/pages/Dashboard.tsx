@@ -13,6 +13,7 @@ import { useTweetHover } from '../../hooks/useTweetHover'
 import { TweetDisplay } from '../TweetDisplay'
 import { AtomDisplay } from '../AtomDisplay'
 import { AtomCreationStatus } from '../AtomCreationStatus'
+import { CreateRandomAtom } from '../CreateRandomAtom'
 import { formatSocialAtomLabel } from '~/util/api'
 import { TrendingUpIcon, ActivityIcon, LayersIcon, UsersIcon } from 'lucide-react'
 
@@ -100,6 +101,9 @@ export function Dashboard() {
       
       {/* Atom Creation Status */}
       <AtomCreationStatus />
+      
+      {/* Random Atom Generator */}
+      <CreateRandomAtom />
       
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
