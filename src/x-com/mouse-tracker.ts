@@ -27,10 +27,13 @@ export class TwitterMouseTracker {
   private pendingTweetData: TweetData | null = null
   private collectedUsernames: Set<string> = new Set()
   private atomCreationTimer: number | null = null
+  private autoCreateAtomsEnabled = true  // Add toggle for auto-creation
 
   constructor() {
     this.initMouseTracking()
     this.setupVisibilityHandling()
+    this.loadAutoCreateSetting()
+    this.listenForSettingChanges()
   }
 
   private initMouseTracking() {
@@ -68,7 +71,7 @@ export class TwitterMouseTracker {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
     }
-    this.clearCurrentHover()
+    // Don't clear the hover data when mouse leaves
   }
 
   private checkHoveredTweet(event: MouseEvent) {
@@ -86,10 +89,8 @@ export class TwitterMouseTracker {
         this.sendTweetData(tweetData)
         console.log('🐦 Tweet hovered (after 1000ms):', tweetData.username, tweetData.content.substring(0, 50) + '...')
       }
-    } else if (this.lastHoveredTweet) {
-      // Mouse moved away from tweet
-      this.clearCurrentHover()
     }
+    // Don't clear when hovering away from tweets
   }
 
   private clearCurrentHover() {
@@ -192,6 +193,8 @@ export class TwitterMouseTracker {
 
 
   private collectUsername(username: string) {
+    if (!this.autoCreateAtomsEnabled) return  // Check if auto-creation is enabled
+    
     if (username && !this.collectedUsernames.has(username)) {
       this.collectedUsernames.add(username)
       this.scheduleAtomCreation()
@@ -247,6 +250,20 @@ export class TwitterMouseTracker {
     this.checkHoveredTweet({ clientX: centerX, clientY: centerY } as MouseEvent)
   }
 
+  // Add method to toggle auto-creation
+  public setAutoCreateAtoms(enabled: boolean) {
+    this.autoCreateAtomsEnabled = enabled
+    if (!enabled && this.atomCreationTimer) {
+      clearTimeout(this.atomCreationTimer)
+      this.collectedUsernames.clear()
+    }
+  }
+
+  // Add method to manually clear current hover (if needed)
+  public manualClear() {
+    this.clearCurrentHover()
+  }
+
   // Cleanup method
   public destroy() {
     if (this.debounceTimer) {
@@ -254,5 +271,22 @@ export class TwitterMouseTracker {
     }
     document.removeEventListener('mousemove', this.handleMouseMove.bind(this))
     document.removeEventListener('mouseleave', this.handleMouseLeave.bind(this))
+  }
+
+  private async loadAutoCreateSetting() {
+    // Load initial setting
+    chrome.storage.local.get('autoCreateAtomsEnabled', (result) => {
+      this.autoCreateAtomsEnabled = result.autoCreateAtomsEnabled ?? true
+    })
+  }
+
+  private listenForSettingChanges() {
+    // Listen for setting changes from sidepanel
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'UPDATE_AUTO_CREATE') {
+        this.autoCreateAtomsEnabled = message.enabled
+        console.log('Auto-create atoms:', message.enabled ? 'enabled' : 'disabled')
+      }
+    })
   }
 }
