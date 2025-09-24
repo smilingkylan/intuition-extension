@@ -98,20 +98,11 @@ export function CreateRandomAtom() {
     } catch (error: any) {
       console.error('Failed to create atom:', error)
       
-      // Check if it's a simulation error
-      if (error.message?.includes('simulation failed') || error.message?.includes('would revert')) {
-        toast({
-          title: "Transaction would fail",
-          description: "The transaction simulation failed. This usually means insufficient balance or the atom already exists.",
-          variant: "destructive"
-        })
-      } else {
-        toast({
-          title: "Failed to create atom",
-          description: error.message || 'An error occurred while creating the atom',
-          variant: "destructive"
-        })
-      }
+      toast({
+        title: "Failed to create atom",
+        description: error.message || 'An error occurred while creating the atom',
+        variant: "destructive"
+      })
     } finally {
       setIsCreating(false)
     }
@@ -200,7 +191,6 @@ export function CreateRandomAtom() {
 
         <div className="text-xs text-muted-foreground text-center space-y-1">
           <p>Creates a real atom on the blockchain with a 0.04 ETH stake</p>
-          <p>Transaction is simulated before execution for safety</p>
         </div>
       </CardContent>
     </Card>

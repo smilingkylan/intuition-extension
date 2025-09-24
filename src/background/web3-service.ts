@@ -258,12 +258,12 @@ export class Web3Service {
         return CONFIG.CHAIN_CONFIG
       default:
         console.warn(`Unknown chain ID: ${chainId}, defaulting to mainnet`)
-        return mainnet
+        return CONFIG.CHAIN_CONFIG
     }
   }
 
   // Protocol methods - to be implemented
-  async createAtoms(data: Hex[], assets: bigint[], value: bigint) {
+  async createAtoms(data: Hex[], assets: string[], value: string) {
     if (!this.walletClient || !this.publicClient) {
       throw new Error('Wallet not connected')
     }
@@ -295,21 +295,17 @@ export class Web3Service {
         }
       }))
 
-      // First, simulate the contract call to ensure it will succeed
-      console.log('Simulating createAtoms transaction...')
-      const { request } = await this.publicClient.simulateContract({
+      // Execute the transaction directly
+      console.log('Executing createAtoms transaction...')
+      const txHash = await this.walletClient.writeContract({
         account,
         address: CONFIG.I8N_CONTRACT_ADDRESS as Address,
         abi: CONFIG.CONTRACT_ABI,
         functionName: 'createAtoms',
-        args: [processedData, assets],
-        value,
+        args: [processedData, processedAssets],
+        value: processedValue,
       })
-
-      console.log('Simulation successful, executing transaction...')
       
-      // Execute the transaction using the simulated request
-      const txHash = await this.walletClient.writeContract(request)
       console.log('Transaction sent:', txHash)
 
       // Wait for transaction receipt
@@ -334,15 +330,9 @@ export class Web3Service {
     } catch (error: any) {
       console.error('Failed to create atoms:', error)
       
-      // Parse simulation/contract errors for more helpful messages
+      // Parse errors for more helpful messages
       let errorMessage = error.message || 'Unknown error'
-      if (error.cause) {
-        // Extract revert reason from simulation error
-        const revertReason = error.cause.reason || error.cause.message
-        if (revertReason) {
-          errorMessage = `Transaction would revert: ${revertReason}`
-        }
-      } else if (error.shortMessage) {
+      if (error.shortMessage) {
         errorMessage = error.shortMessage
       }
       
