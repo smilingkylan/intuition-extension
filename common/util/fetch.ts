@@ -17,8 +17,6 @@ export const revel8Axios = axios.create({
 })
 
 export const i7nAxios = axios.create({
-  // baseURL: 'https://prod.base.intuition-api.com/v1/graphql',
-  // baseURL: 'https://nginx.prod.base-sepolia.intuition.sh/v1/graphql',
   baseURL: GRAPHQL_ORIGIN,
 })
 

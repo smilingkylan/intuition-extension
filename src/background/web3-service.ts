@@ -7,10 +7,9 @@ import {
   type PublicClient,
   type WalletClient,
   type Address,
-  type Chain
 } from 'viem'
-import { mainnet, sepolia } from 'viem/chains'
 import { Web3Storage, type Web3State } from '../lib/storage'
+import { CONFIG } from '~/constants/web3'
 
 export class Web3Service {
   private provider: any = null
@@ -245,17 +244,13 @@ export class Web3Service {
     return Web3Storage.getState()
   }
 
-  private getChainById(chainId: number): typeof mainnet | typeof sepolia {
+  private getChainById(chainId: number) {
     switch (chainId) {
-      case 1:
-        return mainnet
-      case 11155111:
-        return sepolia
       case 13579:
         // This is likely a local testnet or custom chain
         // For now, we'll treat it as sepolia (testnet)
         console.log(`Using sepolia config for chain ID: ${chainId}`)
-        return sepolia
+        return CONFIG.CHAIN_CONFIG
       default:
         console.warn(`Unknown chain ID: ${chainId}, defaulting to mainnet`)
         return mainnet
