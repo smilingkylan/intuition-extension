@@ -163,42 +163,6 @@ export function useWeb3() {
     }
   }
 
-  const sendSelfTransfer = async (amount: string = '1') => {
-    if (!state.isConnected || !state.connectedAddress) {
-      throw new Error('Wallet not connected')
-    }
-
-    setError(null)
-
-    try {
-      console.log('Sending self-transfer...')
-      
-      // Convert amount to wei (1 ETH = 10^18 wei)
-      const valueInWei = BigInt(Math.floor(parseFloat(amount) * 1e18))
-      
-      const response = await sendToBackground({
-        name: 'web3',
-        body: {
-          method: 'sendTransaction',
-          params: [state.connectedAddress, valueInWei.toString()]
-        }
-      })
-
-      console.log('Self-transfer response:', response)
-
-      if (response.success === false || response.error) {
-        throw new Error(response.error || 'Transaction failed')
-      }
-
-      return response
-    } catch (err: any) {
-      console.error('Self-transfer error:', err)
-      const errorMessage = err.message || 'Failed to send transaction'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
-  }
-
   const switchToIntuitionTestnet = async () => {
     setError(null)
 
@@ -265,7 +229,6 @@ export function useWeb3() {
     disconnectWallet,
     getShortAddress,
     getNetworkName,
-    sendSelfTransfer,
     switchToIntuitionTestnet,
     isOnCorrectChain,
     refetch: fetchConnectionState
