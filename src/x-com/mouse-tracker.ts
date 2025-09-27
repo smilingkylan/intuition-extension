@@ -61,7 +61,7 @@ export class TwitterMouseTracker {
     // Set a new timer for 1000ms
     this.debounceTimer = window.setTimeout(() => {
       this.checkHoveredTweet(event)
-    }, 1000)
+    }, 400)
   }
 
   private handleMouseLeave() {
