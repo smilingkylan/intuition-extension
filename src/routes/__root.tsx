@@ -33,7 +33,7 @@ function RootComponent() {
       <Header />
       <div className="pt-14 pb-16 flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto">
-          <div className="mt-8 mb-8">
+          <div className="mb-4">
             <Outlet />
           </div>
         </main>
