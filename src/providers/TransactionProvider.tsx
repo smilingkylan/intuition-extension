@@ -48,7 +48,6 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     chrome.storage.local.get(['contractConfig'], (result) => {
       if (result.contractConfig) {
         setContractConfig(result.contractConfig)
-        console.log('TransactionProvider: Loaded contract config', result.contractConfig)
       }
     })
     
@@ -90,7 +89,6 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
           // Verify the provider has access to the account
           const accounts = await provider.request({ method: 'eth_accounts' }) as string[]
-          console.log('TransactionProvider: Available accounts', accounts)
           
           if (accounts && accounts.includes(savedState.connectedAddress)) {
             // Create wallet client with the connected account
@@ -195,10 +193,8 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }
 
     try {
-      console.log('TransactionProvider: Sending transaction', tx)
       // This will trigger MetaMask popup directly
       const hash = await walletClientRef.current.sendTransaction(tx)
-      console.log('TransactionProvider: Transaction sent', hash)
       return hash
     } catch (err: any) {
       // Handle user rejection, etc

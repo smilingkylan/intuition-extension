@@ -14,21 +14,16 @@ export function useWeb3() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  console.log('useWeb3 1 state', state)
   // Fetch initial state on mount
   useEffect(() => {
-    console.log('useWeb3 2 useEffect')
     fetchConnectionState()
 
     // Listen for state changes from background
     const handleMessage = (message: any) => {
-      console.log('useWeb3 3 handleMessage', message)
       
       if (message.type === 'WEB3_STATE_CHANGED') {
-        console.log('Web3 state changed:', message.data)
         setState(message.data)
       } else if (message.type === 'ACCOUNT_CHANGED_NOTIFICATION') {
-        console.log('Web3 account changed', message.data)
         const { newAccount } = message.data
         toast({
           title: "Account Changed",
@@ -36,7 +31,6 @@ export function useWeb3() {
           duration: 4000,
         })
       } else if (message.type === 'CHAIN_CHANGED_NOTIFICATION') {
-        console.log('Web3 chain changed', message.data)
         const { chainName } = message.data
         toast({
           title: "Network Changed", 
@@ -71,12 +65,10 @@ export function useWeb3() {
   }
 
   const connectWallet = async () => {
-    console.log('useWeb3 4 connectWallet')
     setIsConnecting(true)
     setError(null)
 
     try {
-      console.log('Attempting to connect wallet...')
       const response = await sendToBackground({
         name: 'web3',
         body: {
@@ -85,7 +77,6 @@ export function useWeb3() {
         }
       })
 
-      console.log('Connect wallet response:', response)
 
       if (response.success !== false && response.address) {
         // Success response from new format
@@ -167,7 +158,6 @@ export function useWeb3() {
     setError(null)
 
     try {
-      console.log('Switching to Intuition Testnet...')
       
       const response = await sendToBackground({
         name: 'web3',
@@ -177,7 +167,6 @@ export function useWeb3() {
         }
       })
 
-      console.log('Switch network response:', response)
 
       if (response.success === false || response.error) {
         throw new Error(response.error || 'Failed to switch network')

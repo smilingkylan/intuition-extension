@@ -37,7 +37,6 @@ export class TwitterMouseTracker {
     document.addEventListener('mousemove', this.handleMouseMove.bind(this))
     document.addEventListener('mouseleave', this.handleMouseLeave.bind(this))
     
-    console.log('🐭 Twitter Mouse Tracker initialized')
   }
 
   private setupVisibilityHandling() {
@@ -84,7 +83,6 @@ export class TwitterMouseTracker {
         this.lastHoveredTweet = tweetId
         this.pendingTweetData = tweetData
         this.sendTweetData(tweetData)
-        console.log('🐦 Tweet hovered (after 1000ms):', tweetData.username, tweetData.content.substring(0, 50) + '...')
       }
     } else if (this.lastHoveredTweet) {
       // Mouse moved away from tweet
@@ -96,7 +94,6 @@ export class TwitterMouseTracker {
     this.lastHoveredTweet = null
     this.pendingTweetData = null
     this.sendTweetData(null)
-    console.log('🐦 Tweet hover cleared')
   }
 
   private extractTweetData(article: HTMLElement): TweetData {
@@ -214,7 +211,6 @@ export class TwitterMouseTracker {
     const usernames = Array.from(this.collectedUsernames)
     if (usernames.length === 0) return
 
-    console.log(`Creating atoms for ${usernames.length} usernames:`, usernames)
 
     try {
       await sendToBackground({

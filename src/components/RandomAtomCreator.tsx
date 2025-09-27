@@ -77,15 +77,7 @@ export function RandomAtomCreator() {
       // Total value needed
       const totalValue = initialDeposit + atomCost
 
-      console.log('Creating atom with:', {
-        data: dataString,
-        hexData,
-        initialDeposit: initialDeposit.toString(),
-        atomCost: atomCost.toString(),
-        totalValue: totalValue.toString()
-      })
-
-      // Encode the function call
+// Encode the function call
       const data = encodeFunctionData({
         abi: INTUITION_TESTNET.CONTRACT_ABI,
         functionName: 'createAtoms',

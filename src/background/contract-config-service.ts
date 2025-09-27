@@ -39,7 +39,6 @@ export class ContractConfigService {
   
   async loadConfig() {
     try {
-      console.log('[ContractConfig] Loading contract configuration...')
       
       // Fetch all config in one multicall
       this.config = await multiCallIntuitionConfigs({
@@ -55,7 +54,6 @@ export class ContractConfigService {
         configLastUpdated: Date.now()
       })
       
-      console.log('[ContractConfig] Configuration stored in Chrome storage')
     } catch (error) {
       console.error('[ContractConfig] Failed to load configuration:', error)
     }

@@ -15,13 +15,10 @@ function ProcessStep() {
   const navigate = useNavigate()
   const { formData, transactionData, setCreatedAtoms } = useCreateAtom()
   
-  console.log('ProcessStep rendering with data:', { formData, transactionData })
 
   useEffect(() => {
     const executeTransactions = async () => {
-      console.log('Starting transaction execution...')
       if (!transactionData) {
-        console.log('No transaction data, redirecting to start')
         navigate({ to: '/create-atom/' })
         return
       }
@@ -33,7 +30,6 @@ function ProcessStep() {
           initialDeposit: atom.stake
         }))
         
-        console.log('Creating atoms:', atomsToCreate)
         
         // Send to background for execution using our web3 handler
         const response = await sendToBackground({
@@ -46,7 +42,6 @@ function ProcessStep() {
           }
         })
         
-        console.log('Create atoms response:', response)
         
         if (response.error) {
           throw new Error(response.error)
@@ -57,7 +52,6 @@ function ProcessStep() {
           throw new Error('No atom IDs returned from transaction')
         }
         
-        console.log('Created atom IDs:', atomIds)
         
         // Handle triple creation if needed
         if (formData.hasImage || formData.hasIdentity) {
@@ -85,7 +79,6 @@ function ProcessStep() {
           }
 
           if (triplesToCreate.length > 0) {
-            console.log('Creating triples:', triplesToCreate)
             
             const tripleResponse = await sendToBackground({
               name: "web3",
@@ -95,7 +88,6 @@ function ProcessStep() {
               }
             })
 
-            console.log('Create triples response:', tripleResponse)
             
             if (tripleResponse.error) {
               throw new Error(tripleResponse.error)

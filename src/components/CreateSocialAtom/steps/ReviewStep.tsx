@@ -80,9 +80,7 @@ export function ReviewStep({ formData, onNext, onBack }: ReviewStepProps) {
 
   const handleNext = async () => {
     try {
-      console.log('Preparing transactions...')
       const txData = await prepareTransactions()
-      console.log('Transaction data prepared:', txData)
       onNext(txData)
     } catch (error) {
       console.error('Failed to prepare transactions:', error)

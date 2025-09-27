@@ -2,7 +2,6 @@ import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { getAtomCreatorService } from '../atom-creator-service'
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  console.log('create-atoms handler called with:', req.body)
 
   try {
     const atomCreatorService = getAtomCreatorService()

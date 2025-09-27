@@ -46,7 +46,6 @@ export class Web3Service {
   // Lazy provider initialization - only create when needed
   private getProvider() {
     if (!this.provider) {
-      console.log('🚀 Creating new MetaMask provider')
       this.provider = createExternalExtensionProvider()
       
       // Add debug log
@@ -191,12 +190,10 @@ export class Web3Service {
   }
 
   private handleConnect = () => {
-    console.log('Provider connected')
     this.isAuthenticated = true
   }
 
   private handleDisconnect = () => {
-    console.log('Provider disconnected')
     this.disconnect()
   }
 
@@ -263,7 +260,6 @@ export class Web3Service {
       this.currentState = await Web3Storage.getState()
       this.isAuthenticated = true
 
-      console.log('Wallet connected successfully')
       return { success: true, address: connectedAccount, chainId: finalChainId }
 
     } catch (error: any) {

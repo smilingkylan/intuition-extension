@@ -45,7 +45,6 @@ export class BackgroundService {
 
   // Getter for web3Service (for use in message handlers)
   getWeb3Service() {
-    console.log('background->index getting web3Service', this.web3Service)
     return this.web3Service
   }
   

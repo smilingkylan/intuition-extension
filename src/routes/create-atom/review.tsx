@@ -82,9 +82,7 @@ function ReviewStep() {
 
   const handleNext = async () => {
     try {
-      console.log('Preparing transactions...')
       const txData = await prepareTransactions()
-      console.log('Transaction data prepared:', txData)
       setTransactionData(txData)
       navigate({ to: '/create-atom/process' })
     } catch (error) {

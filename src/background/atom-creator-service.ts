@@ -79,11 +79,9 @@ export class AtomCreatorService {
     )
 
     if (newUsernames.length === 0) {
-      console.log('All usernames are already being processed')
       return
     }
 
-    console.log(`Processing ${newUsernames.length} new usernames:`, newUsernames)
 
     // Process all usernames in parallel
     await Promise.allSettled(
@@ -108,7 +106,6 @@ export class AtomCreatorService {
     })
 
     try {
-      console.log(`Processing Twitter username: ${username}`)
       this.updateStatus(username, 'uploading')
 
       // 1. Create metadata for IPFS
@@ -124,20 +121,16 @@ export class AtomCreatorService {
       }
 
       // 2. Upload to IPFS
-      console.log('Uploading metadata to IPFS...')
       const [fileData] = await uploadJSONToIPFS([atomJSON])
       const ipfsHash = fileData.IpfsHash
-      console.log('IPFS hash received:', ipfsHash)
 
       this.pendingCreations.get(username)!.ipfsHash = ipfsHash
       this.updateStatus(username, 'creating')
 
       // 3. Create atom with IPFS hash
       const uri = `ipfs://${ipfsHash}`
-      console.log('Creating atom with URI:', uri)
       
       // Use the config object with createAtoms
-      console.log('this.config', this.config)
       const transactionHash = await createAtoms(this.config, {
         args: [
           [toHex(uri)],

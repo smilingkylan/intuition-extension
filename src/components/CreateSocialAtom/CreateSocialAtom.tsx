@@ -104,12 +104,6 @@ export function CreateSocialAtom({ initialPlatform, initialUsername, onClose }: 
         return atomCost + finalDeposit  // ✅ Include both atom cost and deposit
       })
       
-      console.log('Creating atoms with config:', {
-        atomCost: contractConfig.formatted_atom_cost,
-        minDeposit: contractConfig.formatted_min_deposit,
-        atomsCount: atomsData.length
-      })
-      
       // Calculate total value
       let totalValue = BigInt(0)
       for (const assets of atomsAssets) {
@@ -136,25 +130,21 @@ export function CreateSocialAtom({ initialPlatform, initialUsername, onClose }: 
         }
       )
       
-      console.log('Atom creation transaction sent:', atomTxHash)
       
       setCurrentAction('Waiting for blockchain confirmation...')
       
       // Wait for receipt
       const atomReceipt = await waitForTransactionReceipt(atomTxHash as Hex)
       
-      console.log('Atom creation receipt:', atomReceipt)
       
       // Parse atom IDs from events using SDK parser
       const atomEvents = await eventParseAtomCreated(publicClient, atomReceipt.transactionHash)
-      console.log('atomEvents', atomEvents)
       const atomIds: string[] = atomEvents.map(event => event.args.termId.toString())
       
       if (atomIds.length === 0) {
         throw new Error('No atom IDs found in transaction receipt')
       }
       
-      console.log('Created atom IDs:', atomIds)
       
       // Handle triple creation if needed
       if (formData.hasImage || formData.hasIdentity) {
@@ -237,7 +227,6 @@ export function CreateSocialAtom({ initialPlatform, initialUsername, onClose }: 
     }
 
     if (tripleSubjects.length > 0) {
-      console.log('Creating triples...')
       setCurrentAction('Creating relationships...')
       
       try {
@@ -270,7 +259,6 @@ export function CreateSocialAtom({ initialPlatform, initialUsername, onClose }: 
         
         // Wait for triple confirmation
         const tripleReceipt = await waitForTransactionReceipt(tripleTxHash as Hex)
-        console.log('Triple creation receipt:', tripleReceipt)
         
         toast({
           title: "Relationships created!",

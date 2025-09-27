@@ -25,11 +25,9 @@ export const Header = () => {
     getShortAddress,
     getNetworkName
   } = useWeb3()
-  console.log('Header rendering', isConnected, connectedAddress, chainId, isConnecting, error)
 
   // Cycle through themes: light -> dark -> system -> light
   const cycleTheme = () => {
-    console.log('Current theme:', theme) // Debug log
     if (theme === 'light') {
       setTheme('dark')
     } else if (theme === 'dark') {
@@ -46,11 +44,9 @@ export const Header = () => {
       ? MoonIcon 
       : MonitorIcon
 
-  console.log('Rendering theme icon for:', theme) // Debug log
 
   const handleModeChange = (mode: Mode) => {
     setMode(mode)
-    console.log('Mode changed to:', mode)
     // TODO: Implement mode-specific logic here
     toast({
       title: `Switched to ${mode === 'mouse' ? 'Mouse' : 'Explore'} mode`,

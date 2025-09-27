@@ -9,7 +9,6 @@ export const config: PlasmoCSConfig = {
 
 // Initialize the tracker
 export const tracker = new TwitterMouseTracker()
-console.log('tracker', tracker)
 // Make it available globally for debugging
 ;(window as any).twitterTracker = tracker
 
