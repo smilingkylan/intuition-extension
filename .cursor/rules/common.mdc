@@ -1,0 +1,6 @@
+---
+description: "common" folder / subtree
+globs:
+alwaysApply: true
+---
+Keep in mind that the `common` folder is a repository that is shared with other applications, so some of the components may not fit well into this project and in fact may not be used in this project
