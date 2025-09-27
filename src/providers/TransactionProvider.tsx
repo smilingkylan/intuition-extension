@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { createExternalExtensionProvider } from '@metamask/providers'
-import { createWalletClient, custom, type WalletClient, type Address, parseEther } from 'viem'
+import { 
+  createWalletClient, 
+  createPublicClient, 
+  custom, 
+  http,
+  type WalletClient, 
+  type PublicClient,
+  type Address, 
+  parseEther,
+  type Hash 
+} from 'viem'
 import { Web3Storage, type Web3State } from '../lib/storage'
 import { intuitionTestnet } from '~/constants/intuitionTestnet'
 
@@ -13,6 +23,10 @@ interface TransactionProviderContextType {
   // Transaction capabilities
   sendTransaction: (tx: any) => Promise<string>
   signMessage: (message: string) => Promise<string>
+  waitForTransactionReceipt: (hash: Hash) => Promise<any>
+  
+  // Clients
+  publicClient: PublicClient | null
   
   // Status
   isReady: boolean
@@ -28,6 +42,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
   // Local provider just for transactions - use 'any' type to avoid type conflicts
   const providerRef = useRef<any>(null)
   const walletClientRef = useRef<WalletClient | null>(null)
+  const publicClientRef = useRef<PublicClient | null>(null)
   
   const [isReady, setIsReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +54,14 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         const savedState = await Web3Storage.getState()
         setState(savedState)
 
-        // 2. Only create provider if wallet is connected
+        // 2. Create public client (always available for reading)
+        const publicClient = createPublicClient({
+          chain: intuitionTestnet,
+          transport: http()
+        })
+        publicClientRef.current = publicClient
+
+        // 3. Only create wallet provider if wallet is connected
         if (savedState.isConnected && savedState.connectedAddress && savedState.chainId) {
           console.log('TransactionProvider: Creating provider for connected wallet', savedState)
           
@@ -82,64 +104,28 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     init()
 
     // Listen for state changes from background
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.web3_state) {
-        const newState = changes.web3_state.newValue as Web3State
-        console.log('TransactionProvider: State changed', newState)
-        setState(newState)
-        
-        // Recreate wallet client if account/chain changed
-        if (newState.isConnected && newState.connectedAddress && newState.chainId && providerRef.current) {
-          providerRef.current.request({ method: 'eth_accounts' }).then((accounts: string[]) => {
-            if (accounts && accounts.includes(newState.connectedAddress!)) {
-              const walletClient = createWalletClient({
-                account: newState.connectedAddress as Address,
-                chain: intuitionTestnet,
-                transport: custom(providerRef.current!)
-              })
-              walletClientRef.current = walletClient
-              setIsReady(true)
-              setError(null)
-            } else {
-              walletClientRef.current = null
-              setIsReady(false)
-              setError('Wallet account not available')
-            }
-          })
-        } else {
-          walletClientRef.current = null
-          setIsReady(false)
-        }
-      }
-    }
-
-    // Also listen for runtime messages
-    const handleMessage = (message: any) => {
-      if (message.type === 'WEB3_STATE_CHANGED') {
-        const newState = message.data as Web3State
-        setState(newState)
-        // Same recreation logic as above
-        if (newState.isConnected && newState.connectedAddress && newState.chainId && providerRef.current) {
-          providerRef.current.request({ method: 'eth_accounts' }).then((accounts: string[]) => {
-            if (accounts && accounts.includes(newState.connectedAddress!)) {
-              const walletClient = createWalletClient({
-                account: newState.connectedAddress as Address,
-                chain: intuitionTestnet,
-                transport: custom(providerRef.current!)
-              })
-              walletClientRef.current = walletClient
-              setIsReady(true)
-              setError(null)
-            }
-          })
-        } else {
-          walletClientRef.current = null
-          setIsReady(false)
+    const handleStorageChange = (changes: any) => {
+      if (changes.web3State) {
+        console.log('TransactionProvider: State updated from background', changes.web3State.newValue)
+        setState(changes.web3State.newValue)
+        // Re-initialize if connection status changed
+        if (changes.web3State.newValue?.isConnected !== changes.web3State.oldValue?.isConnected) {
+          init()
         }
       }
     }
 
     chrome.storage.onChanged.addListener(handleStorageChange)
+
+    // Also listen for runtime messages
+    const handleMessage = (message: any) => {
+      if (message.type === 'WEB3_STATE_UPDATED') {
+        console.log('TransactionProvider: Received state update message', message.state)
+        setState(message.state)
+        init()
+      }
+    }
+
     chrome.runtime.onMessage.addListener(handleMessage)
 
     return () => {
@@ -148,26 +134,39 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }
   }, [])
 
-  const sendTransaction = async (tx: any): Promise<string> => {
-    if (!walletClientRef.current || !state?.isConnected) {
+  const sendTransaction = async (tx: any) => {
+    if (!isReady || !walletClientRef.current) {
+      throw new Error('Wallet not ready for transactions')
+    }
+
+    if (!state?.isConnected || !state?.connectedAddress) {
       throw new Error('Wallet not connected')
     }
 
     try {
       console.log('TransactionProvider: Sending transaction', tx)
-      // This will trigger MetaMask popup directly
-      const hash = await walletClientRef.current.sendTransaction(tx)
+      
+      // Use wallet client to send transaction
+      const hash = await walletClientRef.current.sendTransaction({
+        ...tx,
+        account: state.connectedAddress as Address,
+        chain: intuitionTestnet
+      })
+
       console.log('TransactionProvider: Transaction sent', hash)
       return hash
     } catch (err: any) {
-      // Handle user rejection, etc
-      console.error('Transaction failed:', err)
-      throw err
+      console.error('TransactionProvider: Transaction failed', err)
+      throw new Error(err.message || 'Transaction failed')
     }
   }
 
-  const signMessage = async (message: string): Promise<string> => {
-    if (!walletClientRef.current || !state?.isConnected) {
+  const signMessage = async (message: string) => {
+    if (!isReady || !walletClientRef.current) {
+      throw new Error('Wallet not ready for signing')
+    }
+
+    if (!state?.isConnected || !state?.connectedAddress) {
       throw new Error('Wallet not connected')
     }
 
@@ -178,8 +177,25 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       })
       return signature
     } catch (err: any) {
-      console.error('Signing failed:', err)
-      throw err
+      console.error('TransactionProvider: Signing failed', err)
+      throw new Error(err.message || 'Signing failed')
+    }
+  }
+
+  const waitForTransactionReceipt = async (hash: Hash) => {
+    if (!publicClientRef.current) {
+      throw new Error('Public client not available')
+    }
+
+    try {
+      const receipt = await publicClientRef.current.waitForTransactionReceipt({ 
+        hash,
+        confirmations: 1 
+      })
+      return receipt
+    } catch (err: any) {
+      console.error('TransactionProvider: Failed to get receipt', err)
+      throw new Error(err.message || 'Failed to get transaction receipt')
     }
   }
 
@@ -189,6 +205,8 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     isConnected: state?.isConnected || false,
     sendTransaction,
     signMessage,
+    waitForTransactionReceipt,
+    publicClient: publicClientRef.current,
     isReady,
     error
   }
@@ -200,10 +218,10 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
   )
 }
 
-export const useTransactionProvider = () => {
+export function useTransactionProvider() {
   const context = useContext(TransactionProviderContext)
   if (!context) {
-    throw new Error('useTransactionProvider must be used within TransactionProvider')
+    throw new Error('useTransactionProvider must be used within a TransactionProvider')
   }
   return context
 } 
