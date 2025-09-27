@@ -8,6 +8,10 @@ export enum CreateSocialAtomSteps {
 }
 
 export interface SocialAtomFormData {
+  // Platform and username
+  platform: string
+  username: string
+  
   // Base social atom
   socialAtomName: string
   socialAtomDescription: string
