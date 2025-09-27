@@ -3,9 +3,9 @@ import { Progress } from '~/components/ui/progress'
 import { Button } from '~/components/ui/button'
 import { X, ArrowLeft } from 'lucide-react'
 import { toast } from "~/hooks/use-toast"
-import { useAtomCreation } from '~/hooks/useAtomCreation'
-import { useTripleCreation } from '~/hooks/useTripleCreation'
-import { mapAtomIdsToStructure } from '~/utils/transaction-preparation'
+import { useAtomCreation } from '../../hooks/useAtomCreation'
+import { useTripleCreation } from '../../hooks/useTripleCreation'
+import { mapAtomIdsToStructure } from '../../utils/transaction-preparation'
 
 // Import step components
 import { BasicInfoStep } from './steps/BasicInfoStep'
