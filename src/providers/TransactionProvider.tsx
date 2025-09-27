@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { createExternalExtensionProvider } from '@metamask/providers'
-import { createWalletClient, custom, type WalletClient, type Address, parseEther } from 'viem'
+import { createWalletClient, createPublicClient, custom, http, type WalletClient, type PublicClient, type Address, parseEther, type Hex } from 'viem'
 import { Web3Storage, type Web3State } from '../lib/storage'
 import { intuitionTestnet } from '~/constants/intuitionTestnet'
+import type { ContractConfig } from '../background/contract-config-service'
 
 interface TransactionProviderContextType {
   // State from background
@@ -10,9 +11,17 @@ interface TransactionProviderContextType {
   chainId: number | null
   isConnected: boolean
   
+  // Clients
+  publicClient: PublicClient | null
+  walletClient: WalletClient | null
+  
+  // Contract configuration
+  contractConfig: ContractConfig | null
+  
   // Transaction capabilities
   sendTransaction: (tx: any) => Promise<string>
   signMessage: (message: string) => Promise<string>
+  waitForTransactionReceipt: (hash: Hex) => Promise<any>
   
   // Status
   isReady: boolean
@@ -24,22 +33,54 @@ const TransactionProviderContext = createContext<TransactionProviderContextType 
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
   // State managed by background
   const [state, setState] = useState<Web3State | null>(null)
+  const [contractConfig, setContractConfig] = useState<ContractConfig | null>(null)
   
   // Local provider just for transactions - use 'any' type to avoid type conflicts
   const providerRef = useRef<any>(null)
   const walletClientRef = useRef<WalletClient | null>(null)
+  const publicClientRef = useRef<PublicClient | null>(null)
   
   const [isReady, setIsReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Load contract config from storage
+  useEffect(() => {
+    chrome.storage.local.get(['contractConfig'], (result) => {
+      if (result.contractConfig) {
+        setContractConfig(result.contractConfig)
+        console.log('TransactionProvider: Loaded contract config', result.contractConfig)
+      }
+    })
+    
+    // Listen for config updates
+    const handleStorageChange = (changes: any, namespace: string) => {
+      if (namespace === 'local' && changes.contractConfig) {
+        setContractConfig(changes.contractConfig.newValue)
+      }
+    }
+    
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
+  }, [])
+
   useEffect(() => {
     const init = async () => {
       try {
+        // Always create public client
+        const publicClient = createPublicClient({
+          chain: intuitionTestnet,
+          transport: http()
+        })
+        publicClientRef.current = publicClient
+        
         // 1. Get state from background storage
         const savedState = await Web3Storage.getState()
         setState(savedState)
 
-        // 2. Only create provider if wallet is connected
+        // 2. Only create wallet client if connected
         if (savedState.isConnected && savedState.connectedAddress && savedState.chainId) {
           console.log('TransactionProvider: Creating provider for connected wallet', savedState)
           
@@ -48,47 +89,47 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
           providerRef.current = provider
 
           // Verify the provider has access to the account
-          try {
-            const accounts = await provider.request({ method: 'eth_accounts' }) as string[]
-            console.log('TransactionProvider: Available accounts', accounts)
+          const accounts = await provider.request({ method: 'eth_accounts' }) as string[]
+          console.log('TransactionProvider: Available accounts', accounts)
+          
+          if (accounts && accounts.includes(savedState.connectedAddress)) {
+            // Create wallet client with the connected account
+            const walletClient = createWalletClient({
+              account: savedState.connectedAddress as Address,
+              chain: intuitionTestnet,
+              transport: custom(provider)
+            })
             
-            if (accounts && accounts.length > 0 && accounts.includes(savedState.connectedAddress)) {
-              // Create wallet client with the stored account info
-              const walletClient = createWalletClient({
-                account: savedState.connectedAddress as Address,
-                chain: intuitionTestnet,
-                transport: custom(provider)
-              })
-              walletClientRef.current = walletClient
-              setIsReady(true)
-              console.log('TransactionProvider: Ready for transactions')
-            } else {
-              console.warn('TransactionProvider: Account not available in provider')
-              setError('Wallet account not available. Please reconnect.')
-            }
-          } catch (err) {
-            console.error('TransactionProvider: Failed to verify account access', err)
-            setError('Failed to access wallet')
+            walletClientRef.current = walletClient
+            setIsReady(true)
+            setError(null)
+          } else {
+            walletClientRef.current = null
+            setIsReady(false)
+            setError('Wallet account not available')
           }
         } else {
-          console.log('TransactionProvider: No connected wallet found')
+          walletClientRef.current = null
+          setIsReady(false)
         }
-      } catch (err) {
-        console.error('Failed to initialize transaction provider:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error')
+      } catch (err: any) {
+        console.error('TransactionProvider init error:', err)
+        setError(err.message)
+        setIsReady(false)
       }
     }
 
     init()
+  }, [])
 
-    // Listen for state changes from background
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.web3_state) {
+  // Listen for state changes from background
+  useEffect(() => {
+    const handleStorageChange = (changes: any, namespace: string) => {
+      if (namespace === 'local' && changes.web3_state) {
         const newState = changes.web3_state.newValue as Web3State
-        console.log('TransactionProvider: State changed', newState)
         setState(newState)
         
-        // Recreate wallet client if account/chain changed
+        // Recreate clients if connection status changed
         if (newState.isConnected && newState.connectedAddress && newState.chainId && providerRef.current) {
           providerRef.current.request({ method: 'eth_accounts' }).then((accounts: string[]) => {
             if (accounts && accounts.includes(newState.connectedAddress!)) {
@@ -182,13 +223,25 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       throw err
     }
   }
+  
+  const waitForTransactionReceipt = async (hash: Hex) => {
+    if (!publicClientRef.current) {
+      throw new Error('Public client not available')
+    }
+    
+    return await publicClientRef.current.waitForTransactionReceipt({ hash })
+  }
 
   const value: TransactionProviderContextType = {
     account: state?.connectedAddress as Address | null,
     chainId: state?.chainId || null,
     isConnected: state?.isConnected || false,
+    publicClient: publicClientRef.current,
+    walletClient: walletClientRef.current,
+    contractConfig,
     sendTransaction,
     signMessage,
+    waitForTransactionReceipt,
     isReady,
     error
   }

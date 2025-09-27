@@ -1,0 +1,7 @@
+---
+description: Intuition-Extension is an extension with sidepanel the main UI implementation
+globs:
+alwaysApply: true
+---
+
+- Remember that the UI components in the intuition-extension project are primarily for use within a browser extension side panel. "Page" reloads are unlikely, for example, and users inputting URLs is highly unlikely
