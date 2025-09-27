@@ -1,57 +1,63 @@
 import React, { useState } from 'react'
-import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { Alert, AlertDescription } from '~/components/ui/alert'
-import { Loader2, Sparkles, AlertCircle } from 'lucide-react'
-import { useTransactionProvider } from '../providers/TransactionProvider'
-import { useWeb3 } from '../hooks/useWeb3'
-import { encodeFunctionData, parseEther, toHex, type Address } from 'viem'
-import { INTUITION_TESTNET } from '~/constants/web3'
-import { toast } from '~/hooks/use-toast'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
+import { Button } from "~/components/ui/button"
+import { Badge } from "~/components/ui/badge"
+import { Sparkles, Loader2, ExternalLink, AlertCircle, ChevronRight } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
+import { toast } from "~/hooks/use-toast"
+import { useWeb3 } from '~/hooks/useWeb3'
+import { useSingleAtomCreation } from '~/hooks/useSingleAtomCreation'
 
-// Function to generate random atom data
-function generateRandomAtomData() {
-  const categories = ['person', 'thing', 'concept', 'place', 'event']
-  const adjectives = ['amazing', 'mysterious', 'quantum', 'cosmic', 'ethereal', 'digital', 'ancient', 'futuristic']
-  const nouns = ['explorer', 'artifact', 'dimension', 'nexus', 'crystal', 'portal', 'beacon', 'matrix']
-  
-  const category = categories[Math.floor(Math.random() * categories.length)]
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const noun = nouns[Math.floor(Math.random() * nouns.length)]
-  
-  return {
-    label: `${adjective} ${noun}`,
-    description: `A ${category} that represents the ${adjective} nature of the ${noun} in the Intuition ecosystem.`,
-    emoji: '✨',
-    category
-  }
+// Mock data for random atom generation
+const atomCategories = [
+  { name: 'Concept', emoji: '💡' },
+  { name: 'Person', emoji: '👤' },
+  { name: 'Place', emoji: '📍' },
+  { name: 'Thing', emoji: '🎯' },
+  { name: 'Event', emoji: '📅' },
+  { name: 'Emotion', emoji: '😊' },
+]
+
+const sampleAtoms = {
+  'Concept': ['Innovation', 'Wisdom', 'Creativity', 'Knowledge', 'Truth'],
+  'Person': ['Satoshi Nakamoto', 'Marie Curie', 'Leonardo da Vinci', 'Ada Lovelace'],
+  'Place': ['Silicon Valley', 'Ancient Library of Alexandria', 'CERN', 'MIT'],
+  'Thing': ['Bitcoin', 'Internet', 'Smartphone', 'Blockchain'],
+  'Event': ['Moon Landing', 'Internet Birth', 'Bitcoin Genesis', 'Industrial Revolution'],
+  'Emotion': ['Joy', 'Curiosity', 'Wonder', 'Excitement'],
 }
 
 export function RandomAtomCreator() {
   const { isConnected, connectWallet } = useWeb3()
-  const { sendTransaction, isReady, error: providerError, account, chainId } = useTransactionProvider()
+  const { createAtom, isCreating, error, transactionHash, reset } = useSingleAtomCreation()
   
-  const [isCreating, setIsCreating] = useState(false)
-  const [generatedAtom, setGeneratedAtom] = useState<ReturnType<typeof generateRandomAtomData> | null>(null)
-  const [transactionHash, setTransactionHash] = useState<string | null>(null)
+  const [generatedAtom, setGeneratedAtom] = useState<{
+    label: string
+    description: string
+    emoji: string
+    category: string
+  } | null>(null)
   const [atomId, setAtomId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const generateAtom = () => {
-    const atomData = generateRandomAtomData()
-    setGeneratedAtom(atomData)
-    setTransactionHash(null)
+    const category = atomCategories[Math.floor(Math.random() * atomCategories.length)]
+    const atomsForCategory = sampleAtoms[category.name as keyof typeof sampleAtoms]
+    const label = atomsForCategory[Math.floor(Math.random() * atomsForCategory.length)]
+    
+    setGeneratedAtom({
+      label,
+      description: `A fundamental ${category.name.toLowerCase()} in the knowledge graph`,
+      emoji: category.emoji,
+      category: category.name
+    })
+    
+    // Reset previous transaction state
+    reset()
     setAtomId(null)
-    setError(null)
   }
 
-  const createAtom = async () => {
-    if (!generatedAtom || !isReady) return
-
-    setIsCreating(true)
-    setError(null)
-    setTransactionHash(null)
-    setAtomId(null)
+  const handleCreateAtom = async () => {
+    if (!generatedAtom) return
 
     try {
       // Create the atom data structure (mimicking IPFS format)
@@ -60,46 +66,19 @@ export function RandomAtomCreator() {
         description: generatedAtom.description,
         emoji: generatedAtom.emoji,
         category: generatedAtom.category,
-        created_at: new Date().toISOString(),
-        creator: account
+        created_at: new Date().toISOString()
       }
 
-      // Convert to hex-encoded JSON string (simulating IPFS URI)
-      const dataString = `ipfs://QmRandom${Date.now()}` // In production, you'd upload to IPFS first
-      const hexData = toHex(dataString)
-
-      // Initial deposit (0.01 ETH)
-      const initialDeposit = parseEther('0.01')
-
-      // Calculate atom cost (simplified - in production, read from contract)
-      const atomCost = parseEther('0.003') // Approximate atom creation cost
-
-      // Total value needed
-      const totalValue = initialDeposit + atomCost
-
-// Encode the function call
-      const data = encodeFunctionData({
-        abi: INTUITION_TESTNET.CONTRACT_ABI,
-        functionName: 'createAtoms',
-        args: [
-          [hexData], // Array of hex-encoded data
-          [initialDeposit] // Array of initial deposits
-        ]
-      })
-
-      // Send transaction directly through sidepanel provider
-      const hash = await sendTransaction({
-        to: INTUITION_TESTNET.I8N_CONTRACT_ADDRESS as Address,
-        data,
-        value: totalValue
-      })
-
-      setTransactionHash(hash)
+      // Convert to IPFS URI (simulating - in production, you'd upload to IPFS first)
+      const dataString = `ipfs://QmRandom${Date.now()}`
       
-      // For demo purposes, generate a mock atom ID
-      // In production, you'd parse this from transaction events
-      const mockAtomId = `0x${Math.floor(Math.random() * 1000000).toString(16).padStart(6, '0')}`
-      setAtomId(mockAtomId)
+      // Create atom with 0.01 ETH stake
+      const result = await createAtom({
+        uri: dataString,
+        stake: '0.01'
+      })
+
+      setAtomId(result.atomId)
 
       toast({
         title: "Atom Created!",
@@ -112,144 +91,138 @@ export function RandomAtomCreator() {
       }, 3000)
 
     } catch (err: any) {
+      // Error is already handled by the hook
       console.error('Failed to create atom:', err)
-      
-      const errorMessage = err.message?.includes('user rejected')
-        ? 'Transaction cancelled by user'
-        : err.message || 'Failed to create atom'
-      
-      setError(errorMessage)
-      
-      toast({
-        title: "Creation Failed",
-        description: errorMessage,
-        variant: "destructive"
-      })
-    } finally {
-      setIsCreating(false)
     }
-  }
-
-  // Show connect button if not connected
-  if (!isConnected) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Random Atom Creator</CardTitle>
-          <CardDescription>Connect your wallet to create random atoms</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={connectWallet} className="w-full">
-            Connect Wallet
-          </Button>
-        </CardContent>
-      </Card>
-    )
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Random Atom Creator</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5" />
+          Random Atom Generator
+        </CardTitle>
         <CardDescription>
-          Generate and create random atoms on Intuition
+          Generate and create random atoms on the Intuition network
         </CardDescription>
       </CardHeader>
+      
       <CardContent className="space-y-4">
-        {/* Provider Error */}
-        {providerError && (
-          <Alert variant="destructive">
+        {!isConnected ? (
+          <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{providerError}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Transaction Error */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Generated Atom Preview */}
-        {generatedAtom && !transactionHash && (
-          <div className="p-4 border rounded-lg bg-secondary/10">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">{generatedAtom.emoji}</span>
-              <div className="flex-1">
-                <h4 className="font-semibold">{generatedAtom.label}</h4>
-                <p className="text-sm text-muted-foreground mt-1">{generatedAtom.description}</p>
-                <p className="text-xs text-muted-foreground mt-2">Category: {generatedAtom.category}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Success State */}
-        {transactionHash && (
-          <Alert className="border-green-500 bg-green-50 dark:bg-green-950/20">
-            <Sparkles className="h-4 w-4 text-green-600" />
+            <AlertTitle>Wallet Required</AlertTitle>
             <AlertDescription>
-              <div className="space-y-1">
-                <p className="font-medium text-green-600">Atom created successfully!</p>
-                <p className="text-xs text-muted-foreground">
-                  Transaction: {transactionHash.slice(0, 10)}...{transactionHash.slice(-8)}
-                </p>
-                {atomId && (
-                  <p className="text-xs text-muted-foreground">
-                    Atom ID: {atomId}
-                  </p>
-                )}
-              </div>
+              Please connect your wallet to create atoms
             </AlertDescription>
           </Alert>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          {!generatedAtom || transactionHash ? (
-            <Button 
-              onClick={generateAtom} 
-              className="flex-1"
-              disabled={isCreating}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Random Atom
-            </Button>
-          ) : (
-            <>
+        ) : (
+          <>
+            {!generatedAtom && !transactionHash && (
               <Button 
                 onClick={generateAtom} 
-                variant="outline"
-                className="flex-1"
-                disabled={isCreating}
+                className="w-full" 
+                size="lg"
               >
-                Regenerate
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Random Atom
               </Button>
-              <Button 
-                onClick={createAtom} 
-                className="flex-1"
-                disabled={isCreating || !isReady}
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Atom'
-                )}
-              </Button>
-            </>
-          )}
-        </div>
+            )}
 
-        {/* Wallet Info */}
-        <div className="text-xs text-muted-foreground text-center pt-2">
-          Connected: {account?.slice(0, 6)}...{account?.slice(-4)} | Chain ID: {chainId}
-        </div>
+            {generatedAtom && !transactionHash && (
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg bg-secondary/20">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{generatedAtom.emoji}</span>
+                      <h3 className="font-semibold text-lg">{generatedAtom.label}</h3>
+                    </div>
+                    <Badge variant="secondary">{generatedAtom.category}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {generatedAtom.description}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleCreateAtom} 
+                    className="flex-1"
+                    disabled={isCreating}
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight className="mr-2 h-4 w-4" />
+                        Create Atom (0.01 ETH)
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={generateAtom} 
+                    variant="outline"
+                    disabled={isCreating}
+                  >
+                    Regenerate
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {transactionHash && (
+              <div className="space-y-3">
+                <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                  <AlertTitle className="text-green-800 dark:text-green-200">
+                    Success! 🎉
+                  </AlertTitle>
+                  <AlertDescription className="text-green-700 dark:text-green-300">
+                    Your atom has been created on-chain
+                  </AlertDescription>
+                </Alert>
+
+                {atomId && (
+                  <div className="p-3 bg-secondary/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Atom ID</p>
+                    <code className="text-xs break-all">{atomId}</code>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={generateAtom} 
+                  className="w-full"
+                  variant="outline"
+                >
+                  Generate Another
+                </Button>
+              </div>
+            )}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error.message}</AlertDescription>
+              </Alert>
+            )}
+          </>
+        )}
       </CardContent>
+
+      {!isConnected && (
+        <CardFooter>
+          <Button 
+            onClick={connectWallet} 
+            className="w-full"
+          >
+            Connect Wallet
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
-} 
+}
