@@ -1,22 +1,17 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import React from 'react'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { CheckCircle2, ExternalLink } from 'lucide-react'
-import { useCreateAtom } from '../../components/CreateSocialAtom/CreateAtomContext'
-import { INTUITION_TESTNET } from '../../../common/constants/web3'
+import { INTUITION_TESTNET } from '~/constants/web3'
+import type { CreatedAtoms } from '../types'
 
-export const Route = createFileRoute('/create-atom/success')({
-  component: SuccessStep,
-})
+interface SuccessStepProps {
+  createdAtoms: CreatedAtoms
+  onClose: () => void
+}
 
-function SuccessStep() {
-  const navigate = useNavigate()
-  const { createdAtoms } = useCreateAtom()
+export function SuccessStep({ createdAtoms, onClose }: SuccessStepProps) {
   const explorerUrl = INTUITION_TESTNET.I8N_EXPLORER_DOMAIN
-
-  const handleDone = () => {
-    navigate({ to: '/' })
-  }
 
   return (
     <div className="p-4 space-y-4">
@@ -96,7 +91,7 @@ function SuccessStep() {
       </Card>
 
       <div className="flex justify-center">
-        <Button onClick={handleDone} className="w-full max-w-xs">
+        <Button onClick={onClose} className="w-full max-w-xs">
           Done
         </Button>
       </div>

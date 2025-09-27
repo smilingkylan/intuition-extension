@@ -27,7 +27,7 @@ interface TransactionProviderContextType {
   
   // Clients
   publicClient: PublicClient | null
-  
+  walletClient: WalletClient | null
   // Status
   isReady: boolean
   error: string | null
@@ -207,6 +207,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     signMessage,
     waitForTransactionReceipt,
     publicClient: publicClientRef.current,
+    walletClient: walletClientRef.current,
     isReady,
     error
   }
