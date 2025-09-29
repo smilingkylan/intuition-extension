@@ -80,7 +80,7 @@ declare module '@tanstack/react-router' {
       fullPath: '/create-atom'
       parentRoute: typeof rootRoute
     }
-    '/create-atom/': {
+    '/create-atom/': { // is this also necessary?
       id: '/create-atom/'
       path: '/'
       fullPath: '/create-atom/'

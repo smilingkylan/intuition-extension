@@ -1,5 +1,7 @@
-import { createRouter } from '@tanstack/react-router'
+import { createHashHistory, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
+
+const hashHistory = createHashHistory()
 
 // Create a new router instance
 export const router = createRouter({ 
@@ -7,6 +9,7 @@ export const router = createRouter({
   defaultPreload: 'intent',
   // Since we're in an extension, we use hash history
   basepath: '/',
+  history: hashHistory,
 })
 
 // Register the router instance for maximum type safety
