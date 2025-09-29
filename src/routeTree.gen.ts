@@ -15,15 +15,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexRoute } from './routes/index'
 import { Route as ExploreRoute } from './routes/explore'
-import { Route as HistoryRoute } from './x-com/history'
+import { Route as HistoryRoute } from './routes/history'
 import { Route as SettingsRoute } from './routes/settings'
 import { Route as CreateAtomRoute } from './routes/create-atom'
-import { Route as CreateAtomIndexRoute } from './routes/create-atom/index'
-import { Route as CreateAtomImageRoute } from './routes/create-atom/image'
-import { Route as CreateAtomIdentityRoute } from './routes/create-atom/identity'
-import { Route as CreateAtomReviewRoute } from './routes/create-atom/review'
-import { Route as CreateAtomProcessRoute } from './routes/create-atom/process'
-import { Route as CreateAtomSuccessRoute } from './routes/create-atom/success'
 
 // Create/Update Routes
 
@@ -50,36 +44,6 @@ const SettingsRouteWithParent = SettingsRoute.update({
 const CreateAtomRouteWithParent = CreateAtomRoute.update({
   path: '/create-atom',
   getParentRoute: () => rootRoute,
-} as any)
-
-const CreateAtomIndexRouteWithParent = CreateAtomIndexRoute.update({
-  path: '/',
-  getParentRoute: () => CreateAtomRouteWithParent,
-} as any)
-
-const CreateAtomImageRouteWithParent = CreateAtomImageRoute.update({
-  path: '/image',
-  getParentRoute: () => CreateAtomRouteWithParent,
-} as any)
-
-const CreateAtomIdentityRouteWithParent = CreateAtomIdentityRoute.update({
-  path: '/identity',
-  getParentRoute: () => CreateAtomRouteWithParent,
-} as any)
-
-const CreateAtomReviewRouteWithParent = CreateAtomReviewRoute.update({
-  path: '/review',
-  getParentRoute: () => CreateAtomRouteWithParent,
-} as any)
-
-const CreateAtomProcessRouteWithParent = CreateAtomProcessRoute.update({
-  path: '/process',
-  getParentRoute: () => CreateAtomRouteWithParent,
-} as any)
-
-const CreateAtomSuccessRouteWithParent = CreateAtomSuccessRoute.update({
-  path: '/success',
-  getParentRoute: () => CreateAtomRouteWithParent,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -122,56 +86,15 @@ declare module '@tanstack/react-router' {
       fullPath: '/create-atom/'
       parentRoute: typeof CreateAtomRouteWithParent
     }
-    '/create-atom/image': {
-      id: '/create-atom/image'
-      path: '/image'
-      fullPath: '/create-atom/image'
-      parentRoute: typeof CreateAtomRouteWithParent
-    }
-    '/create-atom/identity': {
-      id: '/create-atom/identity'
-      path: '/identity'
-      fullPath: '/create-atom/identity'
-      parentRoute: typeof CreateAtomRouteWithParent
-    }
-    '/create-atom/review': {
-      id: '/create-atom/review'
-      path: '/review'
-      fullPath: '/create-atom/review'
-      parentRoute: typeof CreateAtomRouteWithParent
-    }
-    '/create-atom/process': {
-      id: '/create-atom/process'
-      path: '/process'
-      fullPath: '/create-atom/process'
-      parentRoute: typeof CreateAtomRouteWithParent
-    }
-    '/create-atom/success': {
-      id: '/create-atom/success'
-      path: '/success'
-      fullPath: '/create-atom/success'
-      parentRoute: typeof CreateAtomRouteWithParent
-    }
   }
 }
-
-// Create and export the route tree
-
-const createAtomRouteWithChildren = CreateAtomRouteWithParent.addChildren([
-  CreateAtomIndexRouteWithParent,
-  CreateAtomImageRouteWithParent,
-  CreateAtomIdentityRouteWithParent,
-  CreateAtomReviewRouteWithParent,
-  CreateAtomProcessRouteWithParent,
-  CreateAtomSuccessRouteWithParent,
-])
 
 export const routeTree = rootRoute.addChildren([
   IndexRouteWithParent,
   ExploreRouteWithParent,
   HistoryRouteWithParent,
   SettingsRouteWithParent,
-  createAtomRouteWithChildren,
+  CreateAtomRouteWithParent,
 ])
 
 /* prettier-ignore-end **/ 
