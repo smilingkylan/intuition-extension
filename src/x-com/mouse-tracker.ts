@@ -4,21 +4,8 @@
  */
 
 import { sendToBackground } from "@plasmohq/messaging"
-
-interface TweetData {
-  tweetId: string
-  username: string
-  displayName: string
-  content: string
-  timestamp: string
-  isVerified: boolean
-  url: string
-  hoveredAt: number
-  mediaCount: number
-  replyCount: number
-  retweetCount: number
-  likeCount: number
-}
+import { getTwitterApiClient } from './twitter-api-client'
+import type { TweetData } from '../types/messages'
 
 export class TwitterMouseTracker {
   private debounceTimer: number | null = null
@@ -27,6 +14,8 @@ export class TwitterMouseTracker {
   private pendingTweetData: TweetData | null = null
   private collectedUsernames: Set<string> = new Set()
   private atomCreationTimer: number | null = null
+  private twitterApi = getTwitterApiClient()
+  private userIdFetchTimeout = 2000 // 2 seconds timeout
 
   constructor() {
     this.initMouseTracking()
@@ -36,7 +25,6 @@ export class TwitterMouseTracker {
   private initMouseTracking() {
     document.addEventListener('mousemove', this.handleMouseMove.bind(this))
     document.addEventListener('mouseleave', this.handleMouseLeave.bind(this))
-    
   }
 
   private setupVisibilityHandling() {
@@ -57,7 +45,7 @@ export class TwitterMouseTracker {
       clearTimeout(this.debounceTimer)
     }
 
-    // Set a new timer for 1000ms
+    // Set a new timer for 400ms
     this.debounceTimer = window.setTimeout(() => {
       this.checkHoveredTweet(event)
     }, 400)
@@ -70,7 +58,7 @@ export class TwitterMouseTracker {
     this.clearCurrentHover()
   }
 
-  private checkHoveredTweet(event: MouseEvent) {
+  private async checkHoveredTweet(event: MouseEvent) {
     const element = document.elementFromPoint(event.clientX, event.clientY)
     const article = element?.closest('article[data-testid="tweet"]') as HTMLElement
     
@@ -78,15 +66,72 @@ export class TwitterMouseTracker {
       const tweetData = this.extractTweetData(article)
       const tweetId = tweetData.tweetId
       
-      // Only send if different from last hovered tweet
+      // Only process if different from last hovered tweet
       if (tweetId !== this.lastHoveredTweet) {
         this.lastHoveredTweet = tweetId
         this.pendingTweetData = tweetData
-        this.sendTweetData(tweetData)
+        
+        // Enrich with user ID before sending
+        const enrichedData = await this.enrichWithUserId(tweetData)
+        
+        // Only send if still hovering the same tweet
+        if (this.lastHoveredTweet === tweetId) {
+          this.sendTweetData(enrichedData)
+        }
       }
     } else if (this.lastHoveredTweet) {
       // Mouse moved away from tweet
       this.clearCurrentHover()
+    }
+  }
+
+  /**
+   * Enrich tweet data with user ID
+   */
+  private async enrichWithUserId(tweetData: TweetData): Promise<TweetData> {
+    const username = tweetData.username.toLowerCase()
+    
+    // Check cache first (synchronous)
+    const cachedUserId = this.twitterApi.getCachedUserId(username)
+    if (cachedUserId) {
+      return {
+        ...tweetData,
+        userId: cachedUserId,
+        userIdSource: 'cache'
+      }
+    }
+    
+    // Create timeout promise
+    const timeoutPromise = new Promise<null>((resolve) => 
+      setTimeout(() => resolve(null), this.userIdFetchTimeout)
+    )
+    
+    try {
+      // Race between API call and timeout
+      const userId = await Promise.race([
+        this.twitterApi.getUserId(username),
+        timeoutPromise
+      ])
+      
+      if (userId) {
+        return {
+          ...tweetData,
+          userId,
+          userIdSource: 'api'
+        }
+      } else {
+        // Timeout or null response
+        return {
+          ...tweetData,
+          userIdSource: 'failed'
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching user ID for ${username}:`, error)
+      return {
+        ...tweetData,
+        userIdSource: 'failed'
+      }
     }
   }
 
@@ -98,9 +143,6 @@ export class TwitterMouseTracker {
 
   private extractTweetData(article: HTMLElement): TweetData {
     const username = this.extractUsername(article)
-    
-    // Collect username for atom creation
-    // this.collectUsername(username)
     
     return {
       tweetId: this.extractTweetId(article),
@@ -187,7 +229,6 @@ export class TwitterMouseTracker {
     return parseInt(cleanText) || 0
   }
 
-
   private collectUsername(username: string) {
     if (username && !this.collectedUsernames.has(username)) {
       this.collectedUsernames.add(username)
@@ -210,7 +251,6 @@ export class TwitterMouseTracker {
   private async createAtomsForCollectedUsernames() {
     const usernames = Array.from(this.collectedUsernames)
     if (usernames.length === 0) return
-
 
     try {
       await sendToBackground({

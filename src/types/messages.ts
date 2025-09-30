@@ -15,6 +15,8 @@ export interface TweetData {
   replyCount: number
   retweetCount: number
   likeCount: number
+  userId?: string
+  userIdSource?: 'cache' | 'api' | 'failed'
 }
 
 export interface MessageBase {
