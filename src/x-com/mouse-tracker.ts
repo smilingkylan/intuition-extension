@@ -159,7 +159,8 @@ export class TwitterMouseTracker {
       mediaCount: this.extractMediaCount(article),
       replyCount: this.extractReplyCount(article),
       retweetCount: this.extractRetweetCount(article),
-      likeCount: this.extractLikeCount(article)
+      likeCount: this.extractLikeCount(article),
+      avatarUrl: this.extractAvatarUrl(article)
     }
   }
 
@@ -197,6 +198,16 @@ export class TwitterMouseTracker {
 
   private checkIfVerified(article: HTMLElement): boolean {
     return article.querySelector('[data-testid="icon-verified"]') !== null
+  }
+
+  private extractAvatarUrl(article: HTMLElement): string | undefined {
+    // Find the avatar image within the tweet
+    const avatarImg = article.querySelector('img[src*="profile_images"]') as HTMLImageElement
+    if (avatarImg?.src) {
+      // Return the URL, ensuring it's the larger version
+      return avatarImg.src.replace(/_normal\./, '_400x400.')
+    }
+    return undefined
   }
 
   private extractMediaCount(article: HTMLElement): number {
@@ -286,7 +297,7 @@ export class TwitterMouseTracker {
    */
   private async sendAtomQuery(tweetData: TweetData) {
     try {
-      const { username, userId, displayName, isVerified } = tweetData
+      const { username, userId, displayName, isVerified, avatarUrl } = tweetData
       
       // Create the query - use userId if available, otherwise username
       const query = userId ? `x.com:${userId}` : `x.com:${username}`
@@ -306,7 +317,8 @@ export class TwitterMouseTracker {
             metadata: {
               displayName,
               isVerified,
-              tweetUrl: tweetData.url
+              tweetUrl: tweetData.url,
+              avatarUrl
             }
           }
         }

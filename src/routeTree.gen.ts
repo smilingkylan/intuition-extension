@@ -18,6 +18,7 @@ import { Route as ExploreRoute } from './routes/explore'
 import { Route as HistoryRoute } from './routes/history'
 import { Route as SettingsRoute } from './routes/settings'
 import { Route as CreateAtomRoute } from './routes/create-atom'
+import { Route as CreateSocialAtomFlowRoute } from './routes/create-social-atom-flow'
 
 // Create/Update Routes
 
@@ -46,6 +47,11 @@ const CreateAtomRouteWithParent = CreateAtomRoute.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const CreateSocialAtomFlowRouteWithParent = CreateSocialAtomFlowRoute.update({
+  path: '/create-social-atom-flow',
+  getParentRoute: () => rootRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -54,47 +60,56 @@ declare module '@tanstack/react-router' {
       id: '/'
       path: '/'
       fullPath: '/'
+      preLoaderRoute: typeof IndexRoute
       parentRoute: typeof rootRoute
     }
     '/explore': {
       id: '/explore'
       path: '/explore'
       fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRoute
       parentRoute: typeof rootRoute
     }
     '/history': {
       id: '/history'
       path: '/history'
       fullPath: '/history'
+      preLoaderRoute: typeof HistoryRoute
       parentRoute: typeof rootRoute
     }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRoute
       parentRoute: typeof rootRoute
     }
     '/create-atom': {
       id: '/create-atom'
       path: '/create-atom'
       fullPath: '/create-atom'
+      preLoaderRoute: typeof CreateAtomRoute
       parentRoute: typeof rootRoute
     }
-    '/create-atom/': { // is this also necessary?
-      id: '/create-atom/'
-      path: '/'
-      fullPath: '/create-atom/'
-      parentRoute: typeof CreateAtomRouteWithParent
+    '/create-social-atom-flow': {
+      id: '/create-social-atom-flow'
+      path: '/create-social-atom-flow'
+      fullPath: '/create-social-atom-flow'
+      preLoaderRoute: typeof CreateSocialAtomFlowRoute
+      parentRoute: typeof rootRoute
     }
   }
 }
 
-export const routeTree = rootRoute.addChildren([
+// Create and export the route tree
+
+export const routeTree = rootRoute.addChildren({
   IndexRouteWithParent,
   ExploreRouteWithParent,
   HistoryRouteWithParent,
   SettingsRouteWithParent,
   CreateAtomRouteWithParent,
-])
+  CreateSocialAtomFlowRouteWithParent,
+})
 
-/* prettier-ignore-end **/ 
+/* prettier-ignore-end */ 

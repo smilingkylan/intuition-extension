@@ -30,15 +30,15 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
   const { query, result, isExpanded, isPinned } = item
 
   const handleCreateAtom = () => {
-    const { creationData } = query
-    if (creationData.platform && creationData.username) {
+    // Check if this is a social atom (X.com/Twitter)
+    if (query.creationData.type === 'social' && query.creationData.platform === 'x.com') {
       navigate({ 
-        to: '/create-atom/', 
-        search: { 
-          platform: creationData.platform, 
-          username: creationData.username 
-        } 
+        to: '/create-social-atom-flow', 
+        search: { creationData: query.creationData } 
       })
+    } else {
+      // For other types, we might still use the old navigation
+      console.warn('Non-social atom creation not yet implemented with new flow')
     }
   }
 

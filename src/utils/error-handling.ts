@@ -2,9 +2,18 @@
  * Parse transaction errors into user-friendly messages
  */
 export function parseTransactionError(error: any): Error {
+  console.error('[parseTransactionError] Raw error:', error)
+  
   let message = 'Transaction failed'
   
-  if (error.message?.includes('insufficient funds')) {
+  // Check for BigInt conversion errors
+  if (error.message?.includes('Cannot convert') && error.message?.includes('to a BigInt')) {
+    message = 'Invalid value format. Please check your input values.'
+    console.error('[parseTransactionError] BigInt conversion error:', {
+      errorMessage: error.message,
+      errorStack: error.stack
+    })
+  } else if (error.message?.includes('insufficient funds')) {
     message = 'Insufficient funds for transaction'
   } else if (error.message?.includes('InsufficientAssets')) {
     message = 'Deposit amount is too small'
@@ -22,6 +31,7 @@ export function parseTransactionError(error: any): Error {
     message = error.message
   }
   
+  console.error('[parseTransactionError] Parsed message:', message)
   return new Error(message)
 }
 
@@ -31,7 +41,7 @@ export function parseTransactionError(error: any): Error {
 export function isUserRejectionError(error: any): boolean {
   return error.message?.includes('user rejected') || 
          error.message?.includes('User denied') ||
-         error.message?.includes('User cancelled')
+         error.code === 4001 // MetaMask user rejection code
 }
 
 /**

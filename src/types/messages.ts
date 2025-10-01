@@ -17,6 +17,7 @@ export interface TweetData {
   likeCount: number
   userId?: string
   userIdSource?: 'cache' | 'api' | 'failed'
+  avatarUrl?: string
 }
 
 export interface MessageBase {
