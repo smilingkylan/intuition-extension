@@ -18,7 +18,7 @@ export function BasicInfoStep({ data, onNext }: BasicInfoStepProps) {
     platform: data.platform || 'x.com',
     username: data.username || '',
     socialAtomName: data.socialAtomName || '',
-    socialAtomDescription: data.socialAtomDescription || '',
+    // socialAtomDescription: data.socialAtomDescription || '',
     hasImage: data.hasImage || false,
     hasIdentity: data.hasIdentity || false,
   })

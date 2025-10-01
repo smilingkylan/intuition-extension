@@ -6,7 +6,7 @@ export const Route = createFileRoute('/create-atom')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       platform: (search.platform as string) || 'x.com',
-      username: (search.username as string) || ''
+      userID: (search.userID as string) || ''
     }
   }
 })

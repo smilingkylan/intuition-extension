@@ -61,7 +61,7 @@ export function Dashboard() {
       
       {/* Atom Display for Tweet Author */}
       <AtomDisplay 
-        identifier={currentTweet?.username}
+        identifier={currentTweet?.userID}
         platform="x.com"
         formatLabel={(username) => `x.com:${username.toLowerCase()}`}
         title="Tweet Author Atom"

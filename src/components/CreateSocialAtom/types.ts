@@ -14,7 +14,7 @@ export interface SocialAtomFormData {
   
   // Base social atom
   socialAtomName: string
-  socialAtomDescription: string
+  // socialAtomDescription: string
   
   // Optional image
   hasImage: boolean

@@ -14,12 +14,12 @@ interface AtomMetadata {
   '@context': string
   '@type': string
   name: string
-  description?: string
-  image?: string
-  url?: string
-  platform?: string
-  username?: string
-  createdAt?: string
+  // description?: string
+  // image?: string
+  // url?: string
+  // platform?: string
+  // username?: string
+  // createdAt?: string
 }
 
 interface PendingAtomCreation {
@@ -39,7 +39,7 @@ export class AtomCreatorService {
   private pendingCreations: Map<string, PendingAtomCreation> = new Map()
   
   constructor() {
-    if (!PRIVATE_KEY || PRIVATE_KEY === '0x') {
+    if (!PRIVATE_KEY) {
       console.error('AtomCreatorService: Private key not configured')
       return
     }
@@ -112,12 +112,7 @@ export class AtomCreatorService {
       const atomJSON: AtomMetadata = {
         '@context': 'https://schema.org',
         '@type': 'Thing',
-        name: `x.com:${username}`,
-        description: `Twitter/X.com user @${username}`,
-        url: `https://x.com/${username}`,
-        platform: 'x.com',
-        username: username,
-        createdAt: new Date().toISOString()
+        name: `x.com:${username}` // should be user ID
       }
 
       // 2. Upload to IPFS

@@ -36,7 +36,7 @@ export function ReviewStep({ formData, onNext, onBack }: ReviewStepProps) {
       '@context': 'https://schema.org',
       '@type': 'Thing', 
       name: formData.socialAtomName,
-      description: formData.socialAtomDescription,
+      // description: formData.socialAtomDescription,
     }
     const socialUpload = await uploadJSONToIPFS([socialAtomData])
     atomsToCreate.push({
