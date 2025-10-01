@@ -76,6 +76,9 @@ export class TwitterMouseTracker {
         
         // Only send if still hovering the same tweet
         if (this.lastHoveredTweet === tweetId) {
+          // Send atom query first
+          await this.sendAtomQuery(enrichedData)
+          // Then send tweet data
           this.sendTweetData(enrichedData)
         }
       }
@@ -267,13 +270,50 @@ export class TwitterMouseTracker {
     }
   }
 
-  private sendTweetData(data: TweetData | null) {
-    chrome.runtime.sendMessage({
-      type: 'TWEET_HOVERED',
-      data
-    }).catch(error => {
-      console.warn('Failed to send tweet data to sidepanel:', error)
-    })
+  private async sendTweetData(data: TweetData | null) {
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'TWEET_HOVERED',
+        data
+      })
+    } catch (error) {
+      console.error('[TwitterMouseTracker] Error sending tweet data:', error)
+    }
+  }
+
+  /**
+   * Send an atom query for the hovered user
+   */
+  private async sendAtomQuery(tweetData: TweetData) {
+    try {
+      const { username, userId, displayName, isVerified } = tweetData
+      
+      // Create the query - use userId if available, otherwise username
+      const query = userId ? `x.com:${userId}` : `x.com:${username}`
+      
+      await chrome.runtime.sendMessage({
+        type: 'ATOM_QUERY',
+        data: {
+          query,
+          source: 'hover',
+          creationData: {
+            type: 'social',
+            name: query,
+            description: `Twitter/X.com profile for @${username}`,
+            platform: 'x.com',
+            username,
+            userId,
+            metadata: {
+              displayName,
+              isVerified,
+              tweetUrl: tweetData.url
+            }
+          }
+        }
+      })
+    } catch (error) {
+      console.error('[TwitterMouseTracker] Error sending atom query:', error)
+    }
   }
 
   // Public method to manually trigger check (useful for testing)

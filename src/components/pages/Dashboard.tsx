@@ -2,16 +2,16 @@ import React, { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Progress } from '~/components/ui/progress'
 import { toast } from '~/hooks/use-toast'
-import { useTweetHover } from '../../hooks/useTweetHover'
-import { TweetDisplay } from '../TweetDisplay'
-import { AtomDisplay } from '../AtomDisplay'
-import { AtomCreationStatus } from '../AtomCreationStatus'
+import { AtomQueueDisplay } from '../AtomQueue'
 import { NetworkWarning } from '../NetworkWarning'
+import { useAtomQueryListener } from '../../hooks/useAtomQueryListener'
 
 export function Dashboard() {
-  const { currentTweet, isHovering } = useTweetHover()
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState(0)
+  
+  // Listen for atom queries from content scripts
+  useAtomQueryListener()
   
   // Simulate loading
   const handleRefresh = () => {
@@ -55,21 +55,8 @@ export function Dashboard() {
         <Progress value={progress} className="w-full" />
       )}
 
-      {/* Tabbed Content */}
-      {/* Current Tweet Display */}
-      <TweetDisplay tweet={currentTweet} isHovering={isHovering} />
-      
-      {/* Atom Display for Tweet Author */}
-      <AtomDisplay 
-        identifier={currentTweet?.userID}
-        platform="x.com"
-        formatLabel={(username) => `x.com:${username.toLowerCase()}`}
-        title="Tweet Author Atom"
-        notFoundMessage={`No Intuition atom found for @${currentTweet?.username || 'this user'}`}
-      />
-      
-      {/* Atom Creation Status */}
-      <AtomCreationStatus />
+      {/* Atom Queue Display */}
+      <AtomQueueDisplay />
     </div>
   )
 }

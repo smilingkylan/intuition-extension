@@ -11,6 +11,7 @@ import { ThemeProvider } from "~/components/ThemeProvider"
 import { Toaster } from "~/components/ui/toaster"
 import { ModeProvider } from "./hooks/useModeContext"
 import { TransactionProvider } from "./providers/TransactionProvider"
+import { AtomQueueProvider } from "./hooks/useAtomQueue"
 
 const queryClient = new QueryClient()
 
@@ -20,8 +21,10 @@ function SidePanel() {
       <ModeProvider defaultMode="explore">
         <QueryClientProvider client={queryClient}>
           <TransactionProvider>
-            <RouterProvider router={router} />
-            <Toaster />
+            <AtomQueueProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+            </AtomQueueProvider>
           </TransactionProvider>
         </QueryClientProvider>
       </ModeProvider>

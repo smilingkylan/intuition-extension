@@ -1,0 +1,176 @@
+/* Atom Queue Animations */
+
+/* Queue item enter/exit animations */
+.queue-item-enter {
+  opacity: 0;
+  transform: translateY(-20px);
+  max-height: 0;
+  overflow: hidden;
+}
+
+.queue-item-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 500px;
+  transition: 
+    opacity 300ms ease-out,
+    transform 300ms ease-out,
+    max-height 300ms ease-out;
+}
+
+.queue-item-exit {
+  opacity: 1;
+  transform: translateX(0);
+  max-height: 500px;
+}
+
+.queue-item-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  max-height: 0;
+  overflow: hidden;
+  transition: 
+    opacity 200ms ease-in,
+    transform 200ms ease-in,
+    max-height 200ms ease-in 100ms;
+}
+
+/* Move animation for reordering */
+.queue-item-move {
+  transition: transform 300ms ease-in-out;
+}
+
+/* Expand/collapse animation */
+.queue-item-content {
+  overflow: hidden;
+  transition: max-height 300ms ease-in-out;
+}
+
+.queue-item-content.collapsed {
+  max-height: 120px;
+}
+
+.queue-item-content.expanded {
+  max-height: 500px;
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.skeleton-loader {
+  animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+/* Pin animation */
+.pin-button {
+  transition: 
+    transform 200ms ease-in-out,
+    color 200ms ease-in-out;
+}
+
+.pin-button.pinned {
+  transform: rotate(45deg);
+  color: var(--primary);
+}
+
+/* Create button hover effect */
+.create-atom-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 200ms ease-in-out;
+}
+
+.create-atom-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 400ms ease-out, height 400ms ease-out;
+}
+
+.create-atom-button:hover::before {
+  width: 200%;
+  height: 200%;
+}
+
+/* Summary stats animation */
+.summary-stat {
+  transition: 
+    transform 200ms ease-in-out,
+    background-color 200ms ease-in-out;
+}
+
+.summary-stat:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Match list animations */
+.match-item {
+  transition: 
+    background-color 200ms ease-in-out,
+    transform 200ms ease-in-out;
+}
+
+.match-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
+}
+
+/* Badge animations */
+.status-badge {
+  transition: all 200ms ease-in-out;
+}
+
+.status-badge.searching {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+}
+
+/* Smooth scrolling for queue container */
+.queue-container {
+  scroll-behavior: smooth;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+/* Fade effect for queue overflow */
+.queue-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--background));
+  pointer-events: none;
+} 

@@ -1,6 +1,7 @@
 // background/index.ts
 import { Web3Service } from './web3-service'
 import { ContractConfigService } from './contract-config-service'
+import { isAtomQueryMessage } from '../types/messages'
 
 export class BackgroundService {
   private web3Service: Web3Service
@@ -22,6 +23,26 @@ export class BackgroundService {
           data: changes.web3_state.newValue
         })
       }
+    })
+
+    // Listen for messages from content scripts
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      // Handle atom queries
+      if (isAtomQueryMessage(message)) {
+        console.log('[Background] Received atom query:', message.data)
+        
+        // Forward to sidepanel
+        chrome.runtime.sendMessage({
+          type: 'ATOM_QUERY',
+          data: message.data,
+          source: 'background'
+        }).catch(error => {
+          console.warn('[Background] Failed to send atom query to sidepanel:', error)
+        })
+      }
+      
+      // Return true to indicate we might send a response asynchronously
+      return true
     })
   }
 

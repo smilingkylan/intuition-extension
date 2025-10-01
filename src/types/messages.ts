@@ -45,10 +45,30 @@ export interface TabChangedMessage extends MessageBase {
   }
 }
 
+export interface AtomQueryMessage extends MessageBase {
+  type: 'ATOM_QUERY'
+  data: {
+    query: string
+    source: 'hover' | 'url' | 'highlight' | 'manual' | 'click'
+    creationData: {
+      type: 'social' | 'url' | 'address' | 'generic' | 'identity'
+      name: string
+      description?: string
+      platform?: string
+      username?: string
+      userId?: string
+      url?: string
+      address?: string
+      metadata: Record<string, any>
+    }
+  }
+}
+
 export type ExtensionMessage = 
   | TweetHoveredMessage 
   | ModeChangedMessage 
   | TabChangedMessage
+  | AtomQueryMessage
 
 // Helper type guards
 export const isTweetHoveredMessage = (message: any): message is TweetHoveredMessage => {
@@ -61,4 +81,8 @@ export const isModeChangedMessage = (message: any): message is ModeChangedMessag
 
 export const isTabChangedMessage = (message: any): message is TabChangedMessage => {
   return message?.type === 'TAB_CHANGED'
+}
+
+export const isAtomQueryMessage = (message: any): message is AtomQueryMessage => {
+  return message?.type === 'ATOM_QUERY'
 }
