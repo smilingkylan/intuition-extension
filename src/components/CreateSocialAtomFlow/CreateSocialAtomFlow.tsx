@@ -6,7 +6,7 @@ import { Textarea } from '~/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Alert, AlertDescription } from '~/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, User, Image, Link, X } from 'lucide-react'
+import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, User, Image, Link, X, RefreshCwIcon } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAtomCreation } from '../../hooks/useAtomCreation'
 import { useTransactionProvider } from '../../providers/TransactionProvider'
@@ -16,6 +16,7 @@ import { atomQueryKeys } from '../../lib/atom-queue/query-keys'
 import { uploadJSONToIPFS, uploadImageUrlToHash } from '~/util/fetch'
 import type { AtomCreationData } from '../../lib/atom-queue/types'
 import { fixImageUrl } from '@/src/x-com/utils'
+import { toast } from '~/hooks/use-toast'
 
 interface CreateSocialAtomFlowProps {
   creationData: AtomCreationData
@@ -266,6 +267,18 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
       }
       
       setStep('success')
+      
+      // Show success toast
+      toast({
+        title: '✅ Atoms Created Successfully!',
+        description: 'Your atoms are being indexed. Use the refresh button (↻) if they show as "Not Found" initially.',
+        duration: 8000, // Show for 8 seconds
+      })
+      
+      // Auto-close modal after 3 seconds
+      setTimeout(() => {
+        onClose()
+      }, 3000)
     } catch (err) {
       console.error('[CreateSocialAtomFlow] Error creating atoms:', err)
       setError(err instanceof Error ? err.message : 'Failed to create atoms')
@@ -482,37 +495,34 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
         return (
           <>
             <CardHeader>
-              <CardTitle>Success!</CardTitle>
-              <CardDescription>
-                All atoms and relationships have been created successfully.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <CardTitle>Success! 🎉</CardTitle>
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
-            
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span>Social media account atom created</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span>Profile picture atom created</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span>Relationships established</span>
-                </div>
-                {includeIdentity && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Identity atom created for {identityData.name}</span>
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  Atoms created successfully and being indexed!
+                  
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    <strong>💡 Tip:</strong> It may take 15-30 seconds for the blockchain 
+                    to index your atoms. If they show as "Not Found" initially, click the 
+                    <RefreshCwIcon className="inline h-3 w-3 mx-1" /> refresh button in the queue.
                   </div>
-                )}
+                </AlertDescription>
+              </Alert>
+              
+              <div className="text-center text-sm text-muted-foreground">
+                Closing automatically in 3 seconds...
               </div>
               
-              <div className="flex justify-end gap-2">
-                <Button onClick={onClose}>Done</Button>
-              </div>
+              <Button onClick={onClose} className="w-full" variant="outline">
+                Close Now
+              </Button>
             </CardContent>
           </>
         )

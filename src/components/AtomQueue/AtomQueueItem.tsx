@@ -94,15 +94,17 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-1">
-            {/* Refresh button - only show for not-found or error states */}
+            {/* Refresh button - prominently displayed for not-found or error states */}
             {(result.status === 'not-found' || result.status === 'error') && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRefresh}
                 disabled={isRefreshing || result.status === 'searching'}
-                className="h-8 w-8 p-0"
-                title="Refresh search"
+                className={`h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10 transition-colors ${
+                  result.status === 'not-found' && !isRefreshing ? 'animate-pulse' : ''
+                }`}
+                title="Refresh search results (especially helpful after creating new atoms)"
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>

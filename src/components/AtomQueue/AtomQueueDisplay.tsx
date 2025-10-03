@@ -4,7 +4,7 @@ import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import { AtomQueueItem } from './AtomQueueItem'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
-import { TrashIcon, PinIcon } from 'lucide-react'
+import { TrashIcon, PinIcon, XCircleIcon } from 'lucide-react'
 import './atom-queue.css'
 
 export function AtomQueueDisplay() {
@@ -41,8 +41,9 @@ export function AtomQueueDisplay() {
                 size="sm"
                 onClick={clearUnpinned}
                 className="text-xs"
+                title="Clear unpinned items"
               >
-                Clear unpinned
+                <XCircleIcon className="h-4 w-4" />
               </Button>
             )}
             <Button
@@ -50,8 +51,9 @@ export function AtomQueueDisplay() {
               size="sm"
               onClick={clearAll}
               className="text-xs text-destructive hover:text-destructive"
+              title="Clear all items"
             >
-              <TrashIcon className="h-3 w-3" />
+              <TrashIcon className="h-4 w-4" />
             </Button>
           </div>
         )}
