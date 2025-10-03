@@ -17,7 +17,6 @@ import { Route as IndexRoute } from './routes/index'
 import { Route as ExploreRoute } from './routes/explore'
 import { Route as HistoryRoute } from './routes/history'
 import { Route as SettingsRoute } from './routes/settings'
-import { Route as CreateAtomRoute } from './routes/create-atom'
 import { Route as CreateSocialAtomFlowRoute } from './routes/create-social-atom-flow'
 
 // Create/Update Routes
@@ -39,11 +38,6 @@ const HistoryRouteWithParent = HistoryRoute.update({
 
 const SettingsRouteWithParent = SettingsRoute.update({
   path: '/settings',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const CreateAtomRouteWithParent = CreateAtomRoute.update({
-  path: '/create-atom',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -84,13 +78,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRoute
       parentRoute: typeof rootRoute
     }
-    '/create-atom': {
-      id: '/create-atom'
-      path: '/create-atom'
-      fullPath: '/create-atom'
-      preLoaderRoute: typeof CreateAtomRoute
-      parentRoute: typeof rootRoute
-    }
     '/create-social-atom-flow': {
       id: '/create-social-atom-flow'
       path: '/create-social-atom-flow'
@@ -108,7 +95,6 @@ export const routeTree = rootRoute.addChildren({
   ExploreRouteWithParent,
   HistoryRouteWithParent,
   SettingsRouteWithParent,
-  CreateAtomRouteWithParent,
   CreateSocialAtomFlowRouteWithParent,
 })
 
