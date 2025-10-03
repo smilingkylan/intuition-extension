@@ -20,6 +20,9 @@ import { formatUnits } from 'viem'
 import { useNavigate } from '@tanstack/react-router'
 import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import type { QueueItem } from '../../lib/atom-queue/types'
+import { CONFIG } from '~/constants'
+
+const { REVEL8_EXPLORER_DOMAIN } = CONFIG
 
 interface AtomQueueItemProps {
   item: QueueItem
@@ -232,7 +235,7 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
                     transition={{ delay: index * 0.1 }}
                     className="flex items-center gap-3 p-3 rounded-lg border bg-card match-item cursor-pointer"
                     onClick={() => {
-                      window.open(`https://dev.portal.intuition.systems/app/atoms/${match.termId}`, '_blank')
+                      window.open(`${REVEL8_EXPLORER_DOMAIN}/atoms/${match.termId}`, '_blank')
                     }}
                   >
                     <AtomIcon 
