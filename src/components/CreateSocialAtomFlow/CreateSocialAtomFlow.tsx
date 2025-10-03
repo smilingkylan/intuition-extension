@@ -33,7 +33,6 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
   const [identityData, setIdentityData] = useState<IdentityData>({ name: '', description: '' })
   const [includeIdentity, setIncludeIdentity] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [createdAtomIds, setCreatedAtomIds] = useState<Record<string, string>>({})
   
   const queryClient = useQueryClient()
   const { createAtomsAndTriples } = useAtomCreation()
@@ -204,11 +203,6 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
       console.log('[CreateSocialAtomFlow] Atoms created successfully:', result)
       
       const { atomIds } = result
-      setCreatedAtomIds({
-        social: atomIds[0],
-        image: atomIds[1],
-        identity: atomIds[2] // May be undefined
-      })
       
       // Prepare triples
       const triples = [
