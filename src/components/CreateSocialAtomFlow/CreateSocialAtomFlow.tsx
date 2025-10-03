@@ -13,8 +13,9 @@ import { useTransactionProvider } from '../../providers/TransactionProvider'
 import { INTUITION_TESTNET } from '~/constants/web3'
 import { formatUnits } from 'viem'
 import { atomQueryKeys } from '../../lib/atom-queue/query-keys'
-import { uploadJSONToIPFS } from '~/util/fetch'
+import { uploadJSONToIPFS, uploadImageUrlToHash } from '~/util/fetch'
 import type { AtomCreationData } from '../../lib/atom-queue/types'
+import { fixImageUrl } from '@/src/x-com/utils'
 
 interface CreateSocialAtomFlowProps {
   creationData: AtomCreationData
@@ -139,6 +140,20 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
       const socialAtomLabel = `x.com:${userId}`
       const imageAtomLabel = `x.com:${username} image`
       
+      // Upload avatar image to IPFS
+      let imageIpfsHash: string | null = null
+      if (avatarUrl) {
+        try {
+          const fixedUrl = fixImageUrl(avatarUrl)
+          await fetch(fixedUrl) // make sure it's a valid link
+          const result = await uploadImageUrlToHash(avatarUrl)
+          imageIpfsHash = result.ipfsHash
+        } catch (error) {
+          console.error('[CreateSocialAtomFlow] Failed to upload avatar to IPFS:', error)
+          // Continue without IPFS image if upload fails - will use direct URL as fallback
+        }
+      }
+      
       // 1. Prepare metadata objects
       const socialAtomMetadata = {
         '@context': 'https://schema.org',
@@ -150,8 +165,8 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
         '@context': 'https://schema.org',
         '@type': 'Thing', 
         name: imageAtomLabel,
-        url: avatarUrl || '',
-        image: avatarUrl || ''
+        url: imageIpfsHash ? `ipfs://${imageIpfsHash}` : (avatarUrl || ''),
+        image: imageIpfsHash ? `ipfs://${imageIpfsHash}` : (avatarUrl || '')
       }
       
       // Prepare metadata array for upload
