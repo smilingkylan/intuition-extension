@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { CreateSocialAtomFlow } from '../components/CreateSocialAtomFlow'
 import type { AtomCreationData } from '../lib/atom-queue/types'
 
-export const Route = createFileRoute('/create-social-atom-flow')({
+export const Route = createFileRoute('/create-social-atom')({
   component: CreateSocialAtomFlowRoute,
   validateSearch: (search: Record<string, unknown>) => {
     return {
@@ -13,7 +13,7 @@ export const Route = createFileRoute('/create-social-atom-flow')({
 
 function CreateSocialAtomFlowRoute() {
   const navigate = useNavigate()
-  const { creationData } = useSearch({ from: '/create-social-atom-flow' })
+  const { creationData } = useSearch({ from: '/create-social-atom' })
   
   if (!creationData) {
     // Redirect to home if no creation data

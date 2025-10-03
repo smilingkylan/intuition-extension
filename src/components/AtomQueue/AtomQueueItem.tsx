@@ -35,7 +35,7 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
     // Check if this is a social atom (X.com/Twitter)
     if (query.creationData.type === 'social' && query.creationData.platform === 'x.com') {
       navigate({ 
-        to: '/create-social-atom-flow', 
+        to: '/create-social-atom', 
         search: { creationData: query.creationData } 
       })
     } else {

@@ -17,7 +17,7 @@ import { Route as IndexRoute } from './routes/index'
 import { Route as ExploreRoute } from './routes/explore'
 import { Route as HistoryRoute } from './routes/history'
 import { Route as SettingsRoute } from './routes/settings'
-import { Route as CreateSocialAtomFlowRoute } from './routes/create-social-atom-flow'
+import { Route as CreateSocialAtomFlowRoute } from './routes/create-social-atom'
 
 // Create/Update Routes
 
@@ -42,7 +42,7 @@ const SettingsRouteWithParent = SettingsRoute.update({
 } as any)
 
 const CreateSocialAtomFlowRouteWithParent = CreateSocialAtomFlowRoute.update({
-  path: '/create-social-atom-flow',
+  path: '/create-social-atom',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -78,10 +78,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRoute
       parentRoute: typeof rootRoute
     }
-    '/create-social-atom-flow': {
-      id: '/create-social-atom-flow'
-      path: '/create-social-atom-flow'
-      fullPath: '/create-social-atom-flow'
+    '/create-social-atom': {
+      id: '/create-social-atom'
+      path: '/create-social-atom'
+      fullPath: '/create-social-atom'
       preLoaderRoute: typeof CreateSocialAtomFlowRoute
       parentRoute: typeof rootRoute
     }
