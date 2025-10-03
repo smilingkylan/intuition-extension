@@ -117,6 +117,7 @@ export class AtomCreatorService {
 
       // 2. Upload to IPFS
       const [fileData] = await uploadJSONToIPFS([atomJSON])
+      console.log('fileData', fileData)
       const ipfsHash = fileData.IpfsHash
 
       this.pendingCreations.get(username)!.ipfsHash = ipfsHash
@@ -124,7 +125,7 @@ export class AtomCreatorService {
 
       // 3. Create atom with IPFS hash
       const uri = `ipfs://${ipfsHash}`
-      
+      console.log('uri', uri)
       // Use the config object with createAtoms
       const transactionHash = await createAtoms(this.config, {
         args: [

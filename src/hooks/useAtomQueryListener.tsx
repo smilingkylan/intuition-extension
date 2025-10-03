@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useAtomQueue } from './useAtomQueue'
+import { useAtomQueue } from './useAtomQueueWithQuery'
 import { isAtomQueryMessage } from '../types/messages'
 import type { AtomQuery } from '../lib/atom-queue/types'
 
@@ -27,9 +27,11 @@ export function useAtomQueryListener() {
         }
         
         // Add to queue
-        addQuery(atomQuery).catch(error => {
+        try {
+          addQuery(atomQuery)
+        } catch (error) {
           console.error('[useAtomQueryListener] Error adding query to queue:', error)
-        })
+        }
       }
     }
 

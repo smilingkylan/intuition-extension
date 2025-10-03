@@ -31,18 +31,19 @@ export interface AtomCreationData {
  * Represents a single atom that was found
  */
 export interface AtomMatch {
-  id: string
+  termId: string
   label: string
-  name: string
-  stake: string // Total staked amount in wei
-  positionCount: number
+  data?: string
+  createdAt: string
+  blockNumber?: string
+  transactionHash?: string
   creator: {
     id: string
-    label?: string
+    label: string
   }
-  createdAt: string
-  vaultId?: string
-  termId: string
+  vaults: any[] // Vault data from the graph
+  totalStaked: string // Total staked amount calculated from vaults
+  totalPositions: number // Total positions across all vaults
 }
 
 /**

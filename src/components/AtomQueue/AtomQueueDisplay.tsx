@@ -1,6 +1,6 @@
 import React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useAtomQueue } from '../../hooks/useAtomQueue'
+import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import { AtomQueueItem } from './AtomQueueItem'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'

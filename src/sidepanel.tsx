@@ -11,7 +11,7 @@ import { ThemeProvider } from "~/components/ThemeProvider"
 import { Toaster } from "~/components/ui/toaster"
 import { ModeProvider } from "./hooks/useModeContext"
 import { TransactionProvider } from "./providers/TransactionProvider"
-import { AtomQueueProvider } from "./hooks/useAtomQueue"
+import { AtomQueueProvider } from "./hooks/useAtomQueueWithQuery"
 
 const queryClient = new QueryClient()
 

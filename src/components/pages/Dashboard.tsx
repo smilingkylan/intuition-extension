@@ -5,6 +5,7 @@ import { toast } from '~/hooks/use-toast'
 import { AtomQueueDisplay } from '../AtomQueue'
 import { NetworkWarning } from '../NetworkWarning'
 import { useAtomQueryListener } from '../../hooks/useAtomQueryListener'
+import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 
 export function Dashboard() {
   const [isLoading, setIsLoading] = useState(false)

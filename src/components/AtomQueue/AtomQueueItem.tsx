@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
@@ -12,12 +12,13 @@ import {
   AlertCircleIcon,
   SparklesIcon,
   DollarSignIcon,
-  UsersIcon
+  UsersIcon,
+  RefreshCw
 } from 'lucide-react'
 import { AtomIcon } from '~/components/AtomIcon'
 import { formatUnits } from 'viem'
 import { useNavigate } from '@tanstack/react-router'
-import { useAtomQueue } from '../../hooks/useAtomQueue'
+import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import type { QueueItem } from '../../lib/atom-queue/types'
 
 interface AtomQueueItemProps {
@@ -26,8 +27,9 @@ interface AtomQueueItemProps {
 
 export function AtomQueueItem({ item }: AtomQueueItemProps) {
   const navigate = useNavigate()
-  const { removeQuery, toggleExpanded, togglePinned } = useAtomQueue()
+  const { removeQuery, toggleExpanded, togglePinned, refreshQuery } = useAtomQueue()
   const { query, result, isExpanded, isPinned } = item
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleCreateAtom = () => {
     // Check if this is a social atom (X.com/Twitter)
@@ -39,6 +41,16 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
     } else {
       // For other types, we might still use the old navigation
       console.warn('Non-social atom creation not yet implemented with new flow')
+    }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshQuery(item.id)
+    } finally {
+      // Add a small delay for better UX
+      setTimeout(() => setIsRefreshing(false), 500)
     }
   }
 
@@ -79,6 +91,20 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-1">
+            {/* Refresh button - only show for not-found or error states */}
+            {(result.status === 'not-found' || result.status === 'error') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing || result.status === 'searching'}
+                className="h-8 w-8 p-0"
+                title="Refresh search"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+            
             <Button
               variant="ghost"
               size="sm"

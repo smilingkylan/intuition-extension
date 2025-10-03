@@ -96,12 +96,15 @@ export function useAtomCreation() {
       
       // Prepare atom data for contract
       const atomsData = atoms.map(atom => {
-        // IPFS pinning would happen here in a real implementation
-        const atomUri = `ipfs://placeholder_${atom.label}`
-        console.log(`[useAtomCreation] Prepared atom URI for ${atom.label}:`, atomUri)
+        // Data must be provided as an IPFS URI
+        if (!atom.data || typeof atom.data !== 'string' || !atom.data.startsWith('ipfs://')) {
+          throw new Error(`Invalid atom data for ${atom.label}. Must be an IPFS URI (ipfs://...)`)
+        }
+        
+        console.log(`[useAtomCreation] Using atom URI for ${atom.label}:`, atom.data)
         
         // Convert to hex-encoded bytes
-        const hexData = toHex(atomUri)
+        const hexData = toHex(atom.data)
         console.log(`[useAtomCreation] Hex encoded data for ${atom.label}:`, hexData)
         
         return hexData

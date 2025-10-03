@@ -1,7 +1,7 @@
 import { graphQLQuery } from '~/common/util/api'
 import type { AtomMatch, MatchSummary } from './types'
 
-// GraphQL query to search atoms by label with vault info
+// GraphQL query to search atoms by label with vault info and transaction details
 const searchAtomsQuery = `
   query SearchAtomsByLabel($label: String!) {
     atoms(
@@ -16,6 +16,8 @@ const searchAtomsQuery = `
       data
       label
       created_at
+      block_number
+      transaction_hash
       creator_id
       creator {
         id
@@ -23,7 +25,7 @@ const searchAtomsQuery = `
       }
       term {
         vaults(where: { curve_id: { _eq: "1" } }) {
-          vault_id
+          term_id
           total_shares
           position_count
           current_share_price
@@ -69,7 +71,7 @@ export class AtomSearchService {
         const vault = atom.term?.vaults?.[0]
         const stake = vault?.total_shares || '0'
         const positionCount = vault?.position_count || 0
-
+        console.log('atom', atom)
         return {
           id: atom.term_id,
           label: atom.label || atom.data,
@@ -81,7 +83,7 @@ export class AtomSearchService {
             label: atom.creator?.label
           },
           createdAt: atom.created_at,
-          vaultId: vault?.vault_id,
+          vaultId: vault?.term_id,
           termId: atom.term_id
         } as AtomMatch
       })

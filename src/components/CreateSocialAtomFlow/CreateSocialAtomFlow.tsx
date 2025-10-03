@@ -7,10 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Alert, AlertDescription } from '~/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, User, Image, Link, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAtomCreation } from '../../hooks/useAtomCreation'
 import { useTransactionProvider } from '../../providers/TransactionProvider'
-import { INTUITION_TESTNET } from '~/common/constants/web3'
+import { INTUITION_TESTNET } from '~/constants/web3'
 import { formatUnits } from 'viem'
+import { atomQueryKeys } from '../../lib/atom-queue/query-keys'
+import { uploadJSONToIPFS } from '~/util/fetch'
 import type { AtomCreationData } from '../../lib/atom-queue/types'
 
 interface CreateSocialAtomFlowProps {
@@ -32,6 +35,7 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
   const [error, setError] = useState<string | null>(null)
   const [createdAtomIds, setCreatedAtomIds] = useState<Record<string, string>>({})
   
+  const queryClient = useQueryClient()
   const { createAtomsAndTriples } = useAtomCreation()
   const { contractConfig, publicClient, walletClient } = useTransactionProvider()
   
@@ -133,40 +137,62 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
         }
       }
       
-      // Prepare atoms to create
+      const socialAtomLabel = `x.com:${userId}`
+      const imageAtomLabel = `x.com:${username} image`
+      
+      // 1. Prepare metadata objects
+      const socialAtomMetadata = {
+        '@context': 'https://schema.org',
+        '@type': 'Thing',
+        name: socialAtomLabel
+      }
+      
+      const imageAtomMetadata = {
+        '@context': 'https://schema.org',
+        '@type': 'Thing', 
+        name: imageAtomLabel,
+        url: avatarUrl || '',
+        image: avatarUrl || ''
+      }
+      
+      // Prepare metadata array for upload
+      const metadataToUpload = [socialAtomMetadata, imageAtomMetadata]
+      
+      // Add identity metadata if requested
+      let identityAtomMetadata = null
+      if (includeIdentity && identityData.name) {
+        identityAtomMetadata = {
+          '@context': 'https://schema.org',
+          '@type': 'Person',
+          name: identityData.name,
+          description: identityData.description
+        }
+        metadataToUpload.push(identityAtomMetadata)
+      }
+      
+      console.log('[CreateSocialAtomFlow] Uploading metadata to IPFS:', metadataToUpload)
+      
+      // 2. Upload all metadata to IPFS
+      const ipfsUploadResults = await uploadJSONToIPFS(metadataToUpload)
+      console.log('[CreateSocialAtomFlow] IPFS upload results:', ipfsUploadResults)
+      
+      // 3. Prepare atoms with IPFS URIs
       const atoms = [
-        // 1. Social media account atom
         {
-          label: creationData.name, // x.com:userId
-          data: {
-            '@context': 'https://schema.org',
-            '@type': 'ProfilePage',
-            name: creationData.name
-          }
+          label: socialAtomLabel,
+          data: `ipfs://${ipfsUploadResults[0].IpfsHash}`
         },
-        // 2. Profile picture atom
         {
-          label: `${creationData.name}:image`,
-          data: {
-            '@context': 'https://schema.org',
-            '@type': 'ImageObject',
-            name: `${creationData.name}:image`,
-            url: avatarUrl,
-            image: avatarUrl
-          }
+          label: imageAtomLabel,
+          data: `ipfs://${ipfsUploadResults[1].IpfsHash}`
         }
       ]
       
-      // 3. Add identity atom if requested
-      if (includeIdentity && identityData.name) {
+      // 4. Add identity atom if requested
+      if (includeIdentity && identityData.name && ipfsUploadResults[2]) {
         atoms.push({
           label: `identity:${identityData.name.toLowerCase().replace(/\s+/g, '-')}`,
-          data: {
-            '@context': 'https://schema.org',
-            '@type': 'Person',
-            name: identityData.name,
-            description: identityData.description
-          }
+          data: `ipfs://${ipfsUploadResults[2].IpfsHash}`
         })
       }
       
@@ -218,6 +244,18 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
       await createAtomsAndTriples.createTriples(triples)
       
       console.log('[CreateSocialAtomFlow] All atoms and triples created successfully!')
+      
+      // Invalidate queries for the created atoms
+      await queryClient.invalidateQueries({
+        queryKey: atomQueryKeys.search(creationData.name)
+      })
+      
+      if (identityData?.name) {
+        await queryClient.invalidateQueries({
+          queryKey: atomQueryKeys.search(identityData.name)
+        })
+      }
+      
       setStep('success')
     } catch (err) {
       console.error('[CreateSocialAtomFlow] Error creating atoms:', err)
