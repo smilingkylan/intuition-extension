@@ -108,4 +108,4 @@ export interface QueueOptions {
   maxItems?: number // Maximum items in queue (default: no limit)
   deduplicateQueries?: boolean // Whether to dedupe identical queries
   autoSearch?: boolean // Whether to automatically search on add
-} 
+}

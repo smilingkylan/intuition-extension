@@ -265,11 +265,23 @@ export function AtomQueueProvider({ children }: { children: React.ReactNode }) {
     const item = internalQueue.find(i => i.id === queueItemId)
     if (!item) return
 
-    // Invalidate and refetch via React Query
+    // Invalidate the atom search query
     await queryClient.invalidateQueries({
       queryKey: atomQueryKeys.search(item.query.query),
       exact: true
     })
+    
+    // Also invalidate image queries for all matches in this item
+    if (item.result.status === 'found' && item.result.matches) {
+      await Promise.all(
+        item.result.matches.map(match => 
+          queryClient.invalidateQueries({
+            queryKey: ['atom-image', match.termId],
+            exact: true
+          })
+        )
+      )
+    }
   }, [internalQueue, queryClient])
 
   const removeQuery = useCallback((queueItemId: string) => {
