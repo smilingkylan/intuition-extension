@@ -65,11 +65,36 @@ export interface AtomQueryMessage extends MessageBase {
   }
 }
 
+export interface UrlDataMessage extends MessageBase {
+  type: 'URL_DATA'
+  data: {
+    url: string
+    hostname: string
+    domains: string[]  // e.g., ['api.twitter.com', 'twitter.com']
+    pathname: string
+    protocol: string
+  }
+}
+
+export interface AddressDetectedMessage extends MessageBase {
+  type: 'ADDRESS_DETECTED'
+  data: {
+    addresses: string[]  // Checksummed addresses
+    context: {
+      url: string
+      elementText: string
+      timestamp: number
+    }
+  }
+}
+
 export type ExtensionMessage = 
   | TweetHoveredMessage 
   | ModeChangedMessage 
   | TabChangedMessage
   | AtomQueryMessage
+  | UrlDataMessage
+  | AddressDetectedMessage
 
 // Helper type guards
 export const isTweetHoveredMessage = (message: any): message is TweetHoveredMessage => {
@@ -86,4 +111,12 @@ export const isTabChangedMessage = (message: any): message is TabChangedMessage 
 
 export const isAtomQueryMessage = (message: any): message is AtomQueryMessage => {
   return message?.type === 'ATOM_QUERY'
+}
+
+export const isUrlDataMessage = (message: any): message is UrlDataMessage => {
+  return message?.type === 'URL_DATA'
+}
+
+export const isAddressDetectedMessage = (message: any): message is AddressDetectedMessage => {
+  return message?.type === 'ADDRESS_DETECTED'
 }

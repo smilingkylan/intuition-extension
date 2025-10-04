@@ -5,6 +5,7 @@ import { toast } from '~/hooks/use-toast'
 import { AtomQueueDisplay } from '../AtomQueue'
 import { NetworkWarning } from '../NetworkWarning'
 import { useAtomQueryListener } from '../../hooks/useAtomQueryListener'
+import { useUrlAndAddressListener } from '../../hooks/useUrlAndAddressListener'
 import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 
 export function Dashboard() {
@@ -13,6 +14,9 @@ export function Dashboard() {
   
   // Listen for atom queries from content scripts
   useAtomQueryListener()
+  
+  // Listen for URL and address detection from global content scripts
+  useUrlAndAddressListener()
   
   // Simulate loading
   const handleRefresh = () => {

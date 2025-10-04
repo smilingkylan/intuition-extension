@@ -55,6 +55,26 @@ Listens for atom query messages from content scripts and adds them to the queue.
 useAtomQueryListener()
 ```
 
+### `useUrlAndAddressListener.tsx`
+
+Listens for URL and Ethereum address detection from global content scripts and converts them into atom queries.
+
+**Features:**
+- Detects URLs and creates queries for all domain variants (subdomain, main domain)
+- Detects Ethereum addresses on hover and creates queries
+- Automatically checksums addresses using EIP-55 standard
+
+```typescript
+// Automatically listens and processes URL/address detection
+useUrlAndAddressListener()
+```
+
+**How it works:**
+1. Global content scripts detect URLs (on page load) and addresses (on hover)
+2. Content scripts send `URL_DATA` or `ADDRESS_DETECTED` messages
+3. This hook converts raw data into properly formatted `AtomQuery` objects
+4. Queries are added to the atom queue for search and display
+
 ### `useAtomCreation.ts`
 
 Handles the creation of atoms and triples on the blockchain.
