@@ -67,10 +67,10 @@ function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchIte
         window.open(`${REVEL8_EXPLORER_DOMAIN}/atoms/${match.termId}`, '_blank')
       }}
     >
-      {relatedImage?.imageUrl ? (
+      {relatedImage?.imageUrl || match.displayInfo?.avatarUrl ? (
         <img 
-          src={fixImageUrl(relatedImage.imageUrl)}
-          alt={match.label}
+          src={fixImageUrl(relatedImage?.imageUrl || match.displayInfo?.avatarUrl)}
+          alt={match.displayLabel || match.label}
           className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
           onError={(e) => {
             e.currentTarget.style.display = 'none'
@@ -83,12 +83,12 @@ function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchIte
         label={match.label}
         size={40}
         className={`rounded-full flex-shrink-0 ${
-          relatedImage?.imageUrl ? 'hidden' : ''
+          (relatedImage?.imageUrl || match.displayInfo?.avatarUrl) ? 'hidden' : ''
         }`}
       />
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-sm truncate">
-          {match.label}
+          {match.displayLabel || match.label}
         </h4>
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
           <span className="flex items-center gap-1">

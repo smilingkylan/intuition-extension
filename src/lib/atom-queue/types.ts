@@ -33,6 +33,7 @@ export interface AtomCreationData {
 export interface AtomMatch {
   termId: string
   label: string
+  displayLabel?: string // User-friendly display version
   data?: string
   createdAt: string
   blockNumber?: string
@@ -44,6 +45,11 @@ export interface AtomMatch {
   vaults: any[] // Vault data from the graph
   totalStaked: string // Total staked amount calculated from vaults
   totalPositions: number // Total positions across all vaults
+  displayInfo?: { // Additional display metadata
+    platform?: 'x.com' | 'github.com' | 'generic'
+    username?: string
+    avatarUrl?: string
+  }
 }
 
 /**

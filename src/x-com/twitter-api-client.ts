@@ -39,11 +39,47 @@ export class TwitterApiClient {
   }
 
   /**
+   * Get username by user ID (with caching)
+   */
+  async getUsername(userId: string): Promise<string | null> {
+    // Check reverse cache first
+    const cachedUsername = this.getUsernameFromCache(userId)
+    if (cachedUsername) {
+      return cachedUsername
+    }
+    
+    try {
+      const response = await axios.get(`${this.apiEndpoint}/twitter/user-id/${userId}`)
+      const username = response.data.username
+      
+      // Cache bidirectionally
+      this.userIdCache.set(username.toLowerCase(), userId)
+      
+      return username
+    } catch (error) {
+      console.warn(`Failed to fetch username for user ID ${userId}:`, error)
+      return null
+    }
+  }
+
+  /**
    * Get user ID synchronously if cached, otherwise return null
    */
   getCachedUserId(username: string): string | null {
     const normalizedUsername = username.replace('@', '').toLowerCase()
     return this.userIdCache.get(normalizedUsername) || null
+  }
+
+  /**
+   * Get username from cache by searching through entries
+   */
+  private getUsernameFromCache(userId: string): string | null {
+    for (const [username, cachedId] of this.userIdCache.entries()) {
+      if (cachedId === userId) {
+        return username
+      }
+    }
+    return null
   }
 
   /**
@@ -64,6 +100,9 @@ export class TwitterApiClient {
 // Singleton instance
 let twitterApiClient: TwitterApiClient | null = null
 
+/**
+ * Get or create the singleton Twitter API client instance
+ */
 export function getTwitterApiClient(): TwitterApiClient {
   if (!twitterApiClient) {
     twitterApiClient = new TwitterApiClient()

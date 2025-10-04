@@ -1,6 +1,7 @@
 import { graphQLQuery } from '~/common/util/api'
 import { atomQueryKeys } from './query-keys'
 import type { AtomMatch, MatchSummary } from './types'
+import { getAtomLabelService } from './atom-label-service'
 
 // GraphQL query to search atoms by label with vault info and transaction details
 const searchAtomsQuery = `
@@ -102,6 +103,32 @@ export async function searchAtomsByLabel(label: string): Promise<SearchResult> {
     Number(b.totalStaked) - Number(a.totalStaked)
   )
 
+  // Transform labels for display - only for top 3 matches
+  const labelService = getAtomLabelService()
+  const top3Matches = sortedMatches.slice(0, 3)
+  
+  // Transform labels in parallel
+  const labelTransformations = await labelService.transformLabels(
+    top3Matches.map(match => match.label)
+  )
+  
+  // Apply transformations to matches
+  const transformedMatches = top3Matches.map(match => {
+    const displayInfo = labelTransformations.get(match.label)
+    if (displayInfo) {
+      return {
+        ...match,
+        displayLabel: displayInfo.displayLabel,
+        displayInfo: {
+          platform: displayInfo.platform,
+          username: displayInfo.username,
+          avatarUrl: displayInfo.avatarUrl
+        }
+      }
+    }
+    return match
+  })
+
   // Calculate summary
   const summary: MatchSummary = {
     totalMatches: processedMatches.length,
@@ -111,11 +138,11 @@ export async function searchAtomsByLabel(label: string): Promise<SearchResult> {
     totalPositions: processedMatches.reduce((sum, match) => 
       sum + match.totalPositions, 0
     ),
-    topMatches: sortedMatches.slice(0, 3)
+    topMatches: transformedMatches
   }
 
   return {
-    matches: sortedMatches.slice(0, 3), // Return top 3
+    matches: transformedMatches,
     summary
   }
 }
