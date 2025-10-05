@@ -15,7 +15,6 @@ export class TwitterMouseTracker {
   private collectedUsernames: Set<string> = new Set()
   private atomCreationTimer: number | null = null
   private twitterApi = getTwitterApiClient()
-  private userIdFetchTimeout = 2000 // 2 seconds timeout
 
   constructor() {
     this.initMouseTracking()
@@ -71,70 +70,17 @@ export class TwitterMouseTracker {
         this.lastHoveredTweet = tweetId
         this.pendingTweetData = tweetData
         
-        // Enrich with user ID before sending
-        const enrichedData = await this.enrichWithUserId(tweetData)
-        
         // Only send if still hovering the same tweet
         if (this.lastHoveredTweet === tweetId) {
           // Send atom query first
-          await this.sendAtomQuery(enrichedData)
+          await this.sendAtomQuery(tweetData)
           // Then send tweet data
-          this.sendTweetData(enrichedData)
+          this.sendTweetData(tweetData)
         }
       }
     } else if (this.lastHoveredTweet) {
       // Mouse moved away from tweet
       this.clearCurrentHover()
-    }
-  }
-
-  /**
-   * Enrich tweet data with user ID
-   */
-  private async enrichWithUserId(tweetData: TweetData): Promise<TweetData> {
-    const username = tweetData.username.toLowerCase()
-    
-    // Check cache first (synchronous)
-    const cachedUserId = this.twitterApi.getCachedUserId(username)
-    if (cachedUserId) {
-      return {
-        ...tweetData,
-        userId: cachedUserId,
-        userIdSource: 'cache'
-      }
-    }
-    
-    // Create timeout promise
-    const timeoutPromise = new Promise<null>((resolve) => 
-      setTimeout(() => resolve(null), this.userIdFetchTimeout)
-    )
-    
-    try {
-      // Race between API call and timeout
-      const userId = await Promise.race([
-        this.twitterApi.getUserId(username),
-        timeoutPromise
-      ])
-      
-      if (userId) {
-        return {
-          ...tweetData,
-          userId,
-          userIdSource: 'api'
-        }
-      } else {
-        // Timeout or null response
-        return {
-          ...tweetData,
-          userIdSource: 'failed'
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching user ID for ${username}:`, error)
-      return {
-        ...tweetData,
-        userIdSource: 'failed'
-      }
     }
   }
 
@@ -297,10 +243,10 @@ export class TwitterMouseTracker {
    */
   private async sendAtomQuery(tweetData: TweetData) {
     try {
-      const { username, userId, displayName, isVerified, avatarUrl } = tweetData
+      const { username, displayName, isVerified, avatarUrl } = tweetData
       
-      // Create the query - use userId if available, otherwise username
-      const query = userId ? `x.com:${userId}` : `x.com:${username}`
+      // Always use username for the query
+      const query = `x.com:${username}`
       
       await chrome.runtime.sendMessage({
         type: 'ATOM_QUERY',
@@ -313,7 +259,6 @@ export class TwitterMouseTracker {
             description: `Twitter/X.com profile for @${username}`,
             platform: 'x.com',
             username,
-            userId,
             metadata: {
               displayName,
               isVerified,

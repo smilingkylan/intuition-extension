@@ -112,7 +112,7 @@ export class AtomCreatorService {
       const atomJSON: AtomMetadata = {
         '@context': 'https://schema.org',
         '@type': 'Thing',
-        name: `x.com:${username}` // should be user ID
+        name: `x.com:${username}`
       }
 
       // 2. Upload to IPFS

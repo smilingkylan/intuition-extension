@@ -1,4 +1,3 @@
-import { getTwitterApiClient } from '../../x-com/twitter-api-client'
 import type { AtomMatch } from './types'
 
 export interface AtomDisplayInfo {
@@ -37,33 +36,12 @@ export class AtomLabelService {
 
     // Handle X.com atoms
     if (label.startsWith('x.com:')) {
-      const userId = label.split(':')[1]
-      const twitterApi = getTwitterApiClient()
-      
-      try {
-        // Try to get username from API
-        const username = await twitterApi.getUsername(userId)
-        
-        if (username) {
-          displayInfo = {
-            displayLabel: `@${username}`,
-            platform: 'x.com',
-            username: username,
-            avatarUrl: `https://unavatar.io/twitter/${username}`
-          }
-        } else {
-          // Fallback if API fails
-          displayInfo = {
-            displayLabel: `x.com user ${userId}`,
-            platform: 'x.com'
-          }
-        }
-      } catch (error) {
-        console.warn(`Failed to transform X.com label ${label}:`, error)
-        displayInfo = {
-          displayLabel: `x.com user ${userId}`,
-          platform: 'x.com'
-        }
+      const username = label.split(':')[1]
+      displayInfo = {
+        displayLabel: `@${username}`,
+        platform: 'x.com',
+        username: username,
+        avatarUrl: `https://unavatar.io/twitter/${username}`
       }
     }
     // Handle GitHub atoms

@@ -15,8 +15,6 @@ export interface TweetData {
   replyCount: number
   retweetCount: number
   likeCount: number
-  userId?: string
-  userIdSource?: 'cache' | 'api' | 'failed'
   avatarUrl?: string
 }
 
@@ -57,7 +55,6 @@ export interface AtomQueryMessage extends MessageBase {
       description?: string
       platform?: string
       username?: string
-      userId?: string
       url?: string
       address?: string
       metadata: Record<string, any>

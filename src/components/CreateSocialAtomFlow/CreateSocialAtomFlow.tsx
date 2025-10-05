@@ -47,7 +47,6 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
   const avatarUrl = creationData.metadata?.avatarUrl
   const displayName = creationData.name || 'Unknown'
   const username = creationData.username || ''
-  const userId = creationData.userId || ''
   
   // Fetch balance and calculate cost
   useEffect(() => {
@@ -138,7 +137,7 @@ export function CreateSocialAtomFlow({ creationData, onClose }: CreateSocialAtom
         }
       }
       
-      const socialAtomLabel = `x.com:${userId}`
+      const socialAtomLabel = `x.com:${username}`
       const imageAtomLabel = `x.com:${username} image`
       
       // Upload avatar image to IPFS
