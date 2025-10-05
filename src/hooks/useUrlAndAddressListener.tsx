@@ -20,19 +20,19 @@ export function useUrlAndAddressListener() {
       if (isUrlDataMessage(message) && message.data) {
         console.log('[useUrlAndAddressListener] Received URL data:', message.data)
         
-        const { domains, hostname, url, pathname } = message.data
+        const { domains, hostname, url, pathname, protocol } = message.data
         
         // Create queries for each domain variant
         // This allows finding atoms for both 'api.twitter.com' and 'twitter.com'
         const queries: AtomQuery[] = domains.map(domain => ({
           id: `url-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          query: domain,
+          query: protocol + '//' + hostname,
           source: 'url',
           creationData: {
             type: 'url',
-            name: domain,
+            name: protocol + '//' + hostname,
             description: `Website: ${domain}`,
-            url: `https://${domain}`,
+            url: protocol + '//' + hostname,
             metadata: {
               fullUrl: url,
               hostname: hostname,

@@ -49,13 +49,16 @@ export function useAtomCreation() {
       
       // Prepare atom data for contract
       const atomsData = atoms.map(atom => {
-        // Data must be provided as a string (URL, IPFS URI, etc.)
-        if (!atom.data || typeof atom.data !== 'string') {
-          throw new Error(`Invalid atom data for ${atom.label}. Must be a string (URL, IPFS URI, etc.)`)
+        // Data must be provided as an IPFS URI
+        if (!atom.data || typeof atom.data !== 'string' || !atom.data.startsWith('ipfs://')) {
+          throw new Error(`Invalid atom data for ${atom.label}. Must be an IPFS URI (ipfs://...)`)
         }
+        
+        console.log(`[useAtomCreation] Using atom URI for ${atom.label}:`, atom.data)
         
         // Convert to hex-encoded bytes
         const hexData = toHex(atom.data)
+        console.log(`[useAtomCreation] Hex encoded data for ${atom.label}:`, hexData)
         
         return hexData
       })

@@ -174,3 +174,17 @@
   background: linear-gradient(to bottom, transparent, var(--background));
   pointer-events: none;
 } 
+/* Card hover state for showing action buttons */
+.queue-item:hover .action-buttons .opacity-0 {
+  opacity: 1;
+}
+
+/* Keep buttons visible when item is pinned */
+.queue-item.pinned .action-buttons .opacity-0 {
+  opacity: 1;
+}
+
+/* Reduce button group size */
+.action-buttons {
+  transition: opacity 200ms ease-in-out;
+}

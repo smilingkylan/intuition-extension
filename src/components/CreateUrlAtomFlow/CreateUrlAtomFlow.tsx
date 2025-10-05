@@ -1,0 +1,323 @@
+import React, { useState, useEffect } from 'react'
+import { Button } from '~/components/ui/button'
+import { Alert, AlertDescription } from '~/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Skeleton } from '~/components/ui/skeleton'
+import { Loader2, CheckCircle2, Link, X, AlertCircle } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useAtomCreation } from '../../hooks/useAtomCreation'
+import { useTransactionProvider } from '../../providers/TransactionProvider'
+import { INTUITION_TESTNET } from '~/constants/web3'
+import { formatUnits } from 'viem'
+import { atomQueryKeys } from '../../lib/atom-queue/query-keys'
+import type { AtomCreationData } from '../../lib/atom-queue/types'
+import { toast } from '~/hooks/use-toast'
+
+interface CreateUrlAtomFlowProps {
+  creationData: AtomCreationData
+  onClose: () => void
+}
+
+type Step = 'review' | 'creating' | 'success' | 'error'
+
+/**
+ * Component for creating URL/domain atoms.
+ * 
+ * URL atoms use the origin URL directly as the atom data (no IPFS upload).
+ * Unlike social atoms, this doesn't create additional atoms or triples.
+ */
+export function CreateUrlAtomFlow({ creationData, onClose }: CreateUrlAtomFlowProps) {
+  const [step, setStep] = useState<Step>('review')
+  const [error, setError] = useState<string | null>(null)
+  
+  const queryClient = useQueryClient()
+  const { createAtomsAndTriples } = useAtomCreation()
+  const { contractConfig, publicClient, walletClient } = useTransactionProvider()
+  
+  const [isCreating, setIsCreating] = useState(false)
+  const [balance, setBalance] = useState<bigint | null>(null)
+  const [estimatedCost, setEstimatedCost] = useState<bigint | null>(null)
+  const [createdAtomId, setCreatedAtomId] = useState<string | null>(null)
+  
+  // Extract clean origin from URL (no path, no trailing slash)
+  const getCleanOrigin = () => {
+    try {
+      const urlString = creationData.metadata?.fullUrl || creationData.url || `https://${creationData.name}`
+      const url = new URL(urlString)
+      return `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`
+    } catch {
+      return `https://${creationData.name}`
+    }
+  }
+  
+  const cleanOrigin = getCleanOrigin()
+  const domainName = creationData.name
+  
+  // Fetch balance and calculate cost
+  useEffect(() => {
+    const fetchBalanceAndCost = async () => {
+      if (walletClient && publicClient && contractConfig) {
+        const address = walletClient.account?.address
+        if (address) {
+          const bal = await publicClient.getBalance({ address })
+          setBalance(bal)
+          
+          // Calculate cost for 1 atom only
+          const atomCost = contractConfig.atom_cost ? BigInt(contractConfig.atom_cost) : BigInt(0)
+          const minDeposit = contractConfig.min_deposit ? BigInt(contractConfig.min_deposit) : BigInt(0)
+          
+          const cost = atomCost + minDeposit
+          setEstimatedCost(cost)
+        }
+      }
+    }
+    
+    if (step === 'review') {
+      fetchBalanceAndCost()
+    }
+  }, [step, walletClient, publicClient, contractConfig])
+  
+  const handleCreate = async () => {
+    setStep('creating')
+    setError(null)
+    setIsCreating(true)
+    
+    try {
+      // Check wallet balance first
+      if (balance && estimatedCost && balance < estimatedCost) {
+        throw new Error(`Insufficient balance. You need ${formatUnits(estimatedCost, 18)} ETH but only have ${formatUnits(balance, 18)} ETH`)
+      }
+      
+      // 1. Prepare atom with URL as data (no IPFS upload needed)
+      // URL atoms use the origin URL directly as both label and data
+      const atom = {
+        label: cleanOrigin,
+        data: cleanOrigin
+      }
+      
+      // 2. Create the atom (no triples needed for URL atoms)
+      const result = await createAtomsAndTriples.createAtoms([atom])
+      
+      const { atomIds } = result
+      setCreatedAtomId(atomIds[0])
+      
+      // 3. Invalidate relevant queries so the queue refreshes
+      await queryClient.invalidateQueries({
+        queryKey: atomQueryKeys.search(cleanOrigin)
+      })
+      
+      setStep('success')
+      setIsCreating(false)
+      
+      toast({
+        title: "URL Atom Created!",
+        description: `Successfully created atom for ${cleanOrigin}`,
+      })
+    } catch (err: any) {
+      console.error('[CreateUrlAtomFlow] Error creating atom:', err)
+      setError(err.message || 'Failed to create atom')
+      setStep('error')
+      setIsCreating(false)
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || 'Failed to create atom',
+      })
+    }
+  }
+  
+  const handleBack = () => {
+    onClose()
+  }
+  
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Link className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle>Create URL Atom</CardTitle>
+                <CardDescription>
+                  {step === 'review' && 'Review the URL atom details'}
+                  {step === 'creating' && 'Creating your URL atom...'}
+                  {step === 'success' && 'URL atom created successfully!'}
+                  {step === 'error' && 'Error creating URL atom'}
+                </CardDescription>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleBack}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          {/* Review Step */}
+          {step === 'review' && (
+            <div className="space-y-6">
+              <div className="p-4 bg-muted/20 rounded-lg border space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Domain</h4>
+                  <p className="text-base font-semibold">{domainName}</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-1">URL (Origin)</h4>
+                  <p className="text-sm text-muted-foreground break-all">{cleanOrigin}</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Description</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {creationData.description || `Website: ${domainName}`}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Cost Estimate - Always show with skeleton when loading */}
+              <div className="p-4 bg-muted/20 rounded-lg border h-[88px]">
+                {estimatedCost ? (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Estimated Cost</span>
+                      <span className="text-base font-semibold">
+                        {formatUnits(estimatedCost, 18)} ETH
+                      </span>
+                    </div>
+                    {balance && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Your Balance</span>
+                        <span className={balance < estimatedCost ? 'text-destructive' : 'text-muted-foreground'}>
+                          {formatUnits(balance, 18)} ETH
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-5 w-24" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {balance && estimatedCost && balance < estimatedCost && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Insufficient balance. You need {formatUnits(estimatedCost - balance, 18)} more ETH.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <Alert>
+                <AlertDescription className="text-sm">
+                  This will create a single atom for <strong>{cleanOrigin}</strong>. The URL will be used 
+                  directly as the atom data (no IPFS upload needed).
+                </AlertDescription>
+              </Alert>
+              
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" onClick={handleBack} className="flex-1">
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCreate} 
+                  className="flex-1"
+                  disabled={!balance || !estimatedCost || balance < estimatedCost}
+                >
+                  Create Atom
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Creating Step */}
+          {step === 'creating' && (
+            <div className="space-y-6 py-8">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">Creating URL Atom...</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Please confirm the transaction in your wallet
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>• Creating atom on-chain...</p>
+                <p>• This may take a minute...</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Success Step */}
+          {step === 'success' && (
+            <div className="space-y-6 py-8">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-10 w-10 text-green-500" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">URL Atom Created!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Successfully created atom for <strong>{cleanOrigin}</strong>
+                  </p>
+                  {createdAtomId && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Atom ID: {createdAtomId}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button onClick={onClose} className="w-full">
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Error Step */}
+          {step === 'error' && (
+            <div className="space-y-6 py-8">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertCircle className="h-10 w-10 text-destructive" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">Error Creating Atom</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {error || 'An unexpected error occurred'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" onClick={handleBack} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleCreate} className="flex-1">
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

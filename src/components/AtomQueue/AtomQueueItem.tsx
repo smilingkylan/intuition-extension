@@ -13,7 +13,8 @@ import {
   SparklesIcon,
   DollarSignIcon,
   UsersIcon,
-  RefreshCw
+  RefreshCw,
+  CheckCircleIcon
 } from 'lucide-react'
 import { AtomIcon } from '~/components/AtomIcon'
 import { formatUnits } from 'viem'
@@ -121,9 +122,18 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
         to: '/create-social-atom', 
         search: { creationData: query.creationData } 
       })
+    } else if (query.creationData.type === 'url') {
+      // Handle URL atom creation
+      navigate({ 
+        to: '/create-url-atom', 
+        search: { creationData: query.creationData } 
+      })
+    } else if (query.creationData.type === 'address') {
+      // TODO: Handle address atom creation in the future
+      console.warn('Address atom creation not yet implemented')
     } else {
-      // For other types, we might still use the old navigation
-      console.warn('Non-social atom creation not yet implemented with new flow')
+      // For other types, log a warning
+      console.warn(`Atom creation for type '${query.creationData.type}' not yet implemented`)
     }
   }
 
@@ -145,47 +155,83 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
     }
   }
 
-  return (
-    <Card className="mb-3 overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {/* Status badge */}
-            <Badge 
-              variant={
-                result.status === 'searching' ? 'secondary' :
-                result.status === 'found' ? 'default' :
-                result.status === 'not-found' ? 'outline' :
-                'destructive'
-              }
-              className={`text-xs status-badge ${result.status}`}
-            >
-              {result.status === 'searching' && 'Searching...'}
-              {result.status === 'found' && `Found ${result.summary?.totalMatches || 0}`}
-              {result.status === 'not-found' && (
-                <>
-                  <AlertCircleIcon className="h-3 w-3 mr-1" />
-                  Not Found
-                </>
-              )}
-              {result.status === 'error' && 'Error'}
-            </Badge>
+  // Handle clicks on the header to expand/collapse (except on action buttons)
+  const handleHeaderClick = (e: React.MouseEvent) => {
+    // Only toggle if clicking on the header itself, not on buttons
+    const target = e.target as HTMLElement
+    if (target.closest('button')) {
+      return
+    }
+    toggleExpanded(item.id)
+  }
 
-            {/* Query label */}
-            <span className="text-sm font-medium truncate">
+  const statusConfig = {
+    searching: {
+      icon: '...',
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10'
+    },
+    found: {
+      icon: result.summary?.totalMatches || 0,
+      color: 'text-green-500',
+      bgColor: 'bg-green-500/10'
+    },
+    'not-found': {
+      icon: '0',
+      color: 'text-yellow-500',
+      bgColor: 'bg-yellow-500/10'
+    },
+    error: {
+      icon: '!',
+      color: 'text-destructive',
+      bgColor: 'bg-destructive/10'
+    }
+  }
+
+  const config = statusConfig[result.status]
+
+  return (
+    <Card className={`mb-3 overflow-hidden queue-item ${isPinned ? 'pinned' : ''}`}>
+      <CardHeader 
+        className="px-4 py-2.5 cursor-pointer hover:bg-accent/5 transition-colors min-h-[52px]"
+        onClick={handleHeaderClick}
+      >
+        <div className="flex items-center justify-between gap-2">
+          {/* Left side: Status icon and query */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* Compact status indicator */}
+            <div 
+              className={`h-7 w-7 rounded-full ${config.bgColor} flex items-center justify-center flex-shrink-0`}
+              title={
+                result.status === 'searching' ? 'Searching...' :
+                result.status === 'found' ? `Found ${result.summary?.totalMatches || 0} atoms` :
+                result.status === 'not-found' ? 'Not found' :
+                'Error'
+              }
+            >
+              <span className={`text-xs font-semibold ${config.color}`}>
+                {config.icon}
+              </span>
+            </div>
+
+            {/* Query label - takes remaining space */}
+            <span className="text-sm font-medium truncate flex-1">
               {query.query}
             </span>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-1 ml-2">
+          {/* Right side: Action buttons (only visible on hover or when pinned) */}
+          <div className="flex items-center gap-1 action-buttons flex-shrink-0">
             {!isRefreshing ? (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleRefresh}
-                className={`h-8 w-8 ${result.status === 'not-found' ? 'animate-pulse' : ''}`}
-                title="Refresh atom data"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleRefresh()
+                }}
+                className="h-7 w-7 opacity-0 transition-opacity"
+                title="Refresh"
               >
                 <RefreshCw className="h-3 w-3" />
               </Button>
@@ -194,7 +240,7 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
                 variant="ghost"
                 size="icon"
                 disabled
-                className="h-8 w-8"
+                className="h-7 w-7"
               >
                 <RefreshCw className="h-3 w-3 animate-spin" />
               </Button>
@@ -203,8 +249,11 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => togglePinned(item.id)}
-              className={`h-8 w-8 pin-button ${isPinned ? 'pinned' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                togglePinned(item.id)
+              }}
+              className={`h-7 w-7 pin-button ${isPinned ? 'pinned' : ''}`}
               title={isPinned ? 'Unpin' : 'Pin'}
             >
               <PinIcon className={`h-3 w-3 ${isPinned ? 'fill-current' : ''}`} />
@@ -213,26 +262,24 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => toggleExpanded(item.id)}
-              className="h-8 w-8 expand-button"
-              title={isExpanded ? 'Collapse' : 'Expand'}
-            >
-              {isExpanded ? (
-                <ChevronUpIcon className="h-3 w-3" />
-              ) : (
-                <ChevronDownIcon className="h-3 w-3" />
-              )}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => removeQuery(item.id)}
-              className="h-8 w-8 remove-button"
+              onClick={(e) => {
+                e.stopPropagation()
+                removeQuery(item.id)
+              }}
+              className="h-7 w-7 remove-button"
               title="Remove"
             >
               <XIcon className="h-3 w-3" />
             </Button>
+            
+            {/* Visual expand indicator */}
+            <div className="ml-1">
+              {isExpanded ? (
+                <ChevronUpIcon className="h-3 w-3 text-muted-foreground" />
+              ) : (
+                <ChevronDownIcon className="h-3 w-3 text-muted-foreground" />
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -243,7 +290,7 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="overflow-hidden"
       >
-        <CardContent className="pt-0">
+        <CardContent className="px-4 pt-0 pb-3">
           {result.status === 'searching' && (
             <div className="space-y-3">
               <Skeleton className="h-4 w-full" />
