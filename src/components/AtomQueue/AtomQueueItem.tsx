@@ -128,9 +128,12 @@ export function AtomQueueItem({ item }: AtomQueueItemProps) {
         to: '/create-url-atom', 
         search: { creationData: query.creationData } 
       })
-    } else if (query.creationData.type === 'address') {
-      // TODO: Handle address atom creation in the future
-      console.warn('Address atom creation not yet implemented')
+      } else if (query.creationData.type === 'address') {
+        // Handle address atom creation
+        navigate({ 
+          to: '/create-address-atom', 
+          search: { creationData: query.creationData } 
+        })
     } else {
       // For other types, log a warning
       console.warn(`Atom creation for type '${query.creationData.type}' not yet implemented`)

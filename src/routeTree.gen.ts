@@ -19,6 +19,7 @@ import { Route as HistoryRoute } from './routes/history'
 import { Route as SettingsRoute } from './routes/settings'
 import { Route as CreateSocialAtomFlowRoute } from './routes/create-social-atom'
 import { Route as CreateUrlAtomFlowRoute } from './routes/create-url-atom'
+import { Route as CreateAddressAtomFlowRoute } from './routes/create-address-atom'
 
 // Create/Update Routes
 
@@ -49,6 +50,11 @@ const CreateSocialAtomFlowRouteWithParent = CreateSocialAtomFlowRoute.update({
 
 const CreateUrlAtomFlowRouteWithParent = CreateUrlAtomFlowRoute.update({
   path: '/create-url-atom',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CreateAddressAtomFlowRouteWithParent = CreateAddressAtomFlowRoute.update({
+  path: '/create-address-atom',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -98,6 +104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateUrlAtomFlowRoute
       parentRoute: typeof rootRoute
     }
+    '/create-address-atom': {
+      id: '/create-address-atom'
+      path: '/create-address-atom'
+      fullPath: '/create-address-atom'
+      preLoaderRoute: typeof CreateAddressAtomFlowRoute
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -110,6 +123,7 @@ export const routeTree = rootRoute.addChildren({
   SettingsRouteWithParent,
   CreateSocialAtomFlowRouteWithParent,
   CreateUrlAtomFlowRouteWithParent,
+  CreateAddressAtomFlowRouteWithParent,
 })
 
 /* prettier-ignore-end */
