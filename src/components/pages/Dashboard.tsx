@@ -8,10 +8,12 @@ import { useAtomQueryListener } from '../../hooks/useAtomQueryListener'
 import { useUrlAndAddressListener } from '../../hooks/useUrlAndAddressListener'
 import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import { useCachedAtoms } from '../../hooks/useCachedAtoms'
+import { Layers } from 'lucide-react'
 
 export function Dashboard() {
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const { currentTabId, queue } = useAtomQueue()
   
   // Listen for atom queries from content scripts
   useAtomQueryListener()
@@ -54,6 +56,12 @@ export function Dashboard() {
           <p className="text-muted-foreground">
             Your Intuition overview
           </p>
+          {currentTabId && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+              <Layers className="w-4 h-4" />
+              <span>Tab #{currentTabId} • {queue.length} atom{queue.length !== 1 ? 's' : ''} in queue</span>
+            </div>
+          )}
         </div>
         <Button onClick={handleRefresh} disabled={isLoading}>
           {isLoading ? 'Refreshing...' : 'Refresh'}

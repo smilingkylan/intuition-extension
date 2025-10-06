@@ -13,6 +13,7 @@ interface QueueItemInternal extends QueueItem {
 
 interface AtomQueueContextValue {
   queue: QueueItem[]
+  currentTabId: number | null
   addQuery: (query: AtomQuery) => string
   removeQuery: (queueItemId: string) => void
   refreshQuery: (queueItemId: string) => Promise<void>
@@ -95,76 +96,47 @@ function QueueItemQueryHandler({
 
 /**
  * Provider component that combines React Query with queue management
+ * Now with tab-specific queue support
  * 
  * Architecture:
- * - Queue Manager: Handles queue state (order, pinning, expansion)
- * - React Query: Handles data fetching and caching
- * - This hook: Bridges the two systems
+ * - Queue Manager: Handles queue state (order, pinning, expansion) per tab
+ * - React Query: Handles data fetching, caching, and invalidation
+ * - This Provider: Bridges the two systems and syncs their state
  */
-export function AtomQueueProvider({ children }: { children: React.ReactNode }) {
+export function AtomQueueProvider({ 
+  children,
+  queueOptions 
+}: { 
+  children: React.ReactNode
+  queueOptions?: Partial<typeof AtomQueueManager.prototype['options']>
+}) {
   const queryClient = useQueryClient()
-  const [internalQueue, setInternalQueue] = useState<QueueItemInternal[]>([])
-  const [stats, setStats] = useState({ 
-    total: 0, 
-    pinned: 0, 
-    searching: 0, 
-    found: 0, 
-    notFound: 0, 
-    error: 0 
-  })
-  
   const queueManagerRef = useRef<AtomQueueManager>()
+  const [internalQueue, setInternalQueue] = useState<QueueItemInternal[]>([])
+  const [stats, setStats] = useState(getEmptyStats())
+  const [currentTabId, setCurrentTabId] = useState<number | null>(null)
   
-  // Performance optimization: batch updates
-  const pendingUpdates = useRef<Map<string, QueryResult>>(new Map())
+  // Timer for batched updates
   const updateTimerRef = useRef<NodeJS.Timeout>()
 
-  const flushUpdates = useCallback(() => {
-    if (pendingUpdates.current.size === 0) return
-    
-    const manager = queueManagerRef.current
-    if (!manager) return
-
-    // Apply all pending updates
-    pendingUpdates.current.forEach((result, id) => {
-      const item = manager.getQueue().find(item => item.query.id === id)
-      if (item) {
-        manager.updateQueryResult(id, result)
-      }
-    })
-    
-    pendingUpdates.current.clear()
-    
-    // Update state
-    const updatedQueue = manager.getQueue() as QueueItemInternal[]
-    setInternalQueue(updatedQueue)
-    setStats(manager.getStats())
-  }, [])
-
-  const handleResultUpdate = useCallback((id: string, result: QueryResult) => {
-    // Batch updates to prevent excessive re-renders
-    pendingUpdates.current.set(result.queryId, result)
-    
-    if (updateTimerRef.current) {
-      clearTimeout(updateTimerRef.current)
-    }
-    
-    updateTimerRef.current = setTimeout(flushUpdates, 50)
-  }, [flushUpdates])
-
   // Initialize queue manager
-  useEffect(() => {
-    const manager = new AtomQueueManager({
-      deduplicateQueries: true,
-      autoSearch: false, // We handle search via React Query
-      maxItems: 20       // Limit to prevent too many queries
+  if (!queueManagerRef.current) {
+    queueManagerRef.current = new AtomQueueManager({
+      ...queueOptions,
+      persistQueues: true // Always enable persistence for tab-specific queues
     })
-    
-    queueManagerRef.current = manager
+  }
 
-    const updateUI = () => {
+  // Sync queue manager state to React state
+  useEffect(() => {
+    const manager = queueManagerRef.current!
+    
+    // Get initial tab and queue
+    const initialTabId = manager.getCurrentTabId()
+    setCurrentTabId(initialTabId)
+    
+    const updateQueueState = () => {
       const queue = manager.getQueue() as QueueItemInternal[]
-      // Enable queries by default
       queue.forEach(item => {
         if (item.queryEnabled === undefined) {
           item.queryEnabled = true
@@ -173,29 +145,68 @@ export function AtomQueueProvider({ children }: { children: React.ReactNode }) {
       setInternalQueue(queue)
       setStats(manager.getStats())
     }
-
-    manager.on('query:added', updateUI)
-    manager.on('query:removed', ({ queryId }) => {
-      updateUI()
-      
-      // Find if any other items use this query
-      const otherItems = manager.getQueue().filter(
-        item => item.query.query === queryId && item.id !== queryId
-      )
-      
-      // If no other items use this query, remove it from cache
-      if (otherItems.length === 0) {
-        queryClient.removeQueries({
-          queryKey: atomQueryKeys.search(queryId),
-          exact: true
-        })
+    
+    // Initial update
+    updateQueueState()
+    
+    // Subscribe to queue events
+    const handleQueueChange = () => {
+      // Batch updates to avoid too many re-renders
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current)
       }
-    })
-    manager.on('query:updated', updateUI)
-    manager.on('queue:cleared', updateUI)
+      
+      updateTimerRef.current = setTimeout(() => {
+        updateQueueState()
+      }, 50)
+    }
+    
+    const handleTabSwitch = ({ tabId }: { tabId: number }) => {
+      console.log('[AtomQueueProvider] Tab switched to:', tabId)
+      setCurrentTabId(tabId)
+      updateQueueState()
+    }
+
+    manager.on('query:added', handleQueueChange)
+    manager.on('query:removed', handleQueueChange)
+    manager.on('query:updated', handleQueueChange)
+    manager.on('queue:cleared', handleQueueChange)
+    manager.on('tab:switched' as any, handleTabSwitch)
 
     return () => {
-      manager.removeAllListeners()
+      manager.removeListener('query:added', handleQueueChange)
+      manager.removeListener('query:removed', handleQueueChange)
+      manager.removeListener('query:updated', handleQueueChange)
+      manager.removeListener('queue:cleared', handleQueueChange)
+      manager.removeListener('tab:switched' as any, handleTabSwitch)
+      
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current)
+      }
+    }
+  }, [])
+
+  // Update query result in queue manager
+  const handleResultUpdate = useCallback((id: string, result: QueryResult) => {
+    queueManagerRef.current?.updateQueryResult(result.queryId, result)
+  }, [])
+
+  // Invalidate atom queries after atom creation
+  useEffect(() => {
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, namespace: string) => {
+      if (namespace === 'local' && changes.last_created_atom) {
+        const createdAtom = changes.last_created_atom.newValue
+        if (createdAtom?.label) {
+          queryClient.invalidateQueries({
+            queryKey: atomQueryKeys.search(createdAtom.label)
+          })
+        }
+      }
+    }
+
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
       if (updateTimerRef.current) {
         clearTimeout(updateTimerRef.current)
       }
@@ -304,24 +315,18 @@ export function AtomQueueProvider({ children }: { children: React.ReactNode }) {
     queueManagerRef.current?.clearUnpinned()
     const updatedQueue = queueManagerRef.current?.getQueue() as QueueItemInternal[]
     setInternalQueue(updatedQueue || [])
-    setStats(queueManagerRef.current?.getStats() || stats)
-  }, [stats])
+    setStats(queueManagerRef.current?.getStats() || getEmptyStats())
+  }, [])
 
   const clearAll = useCallback(() => {
     queueManagerRef.current?.clearAll()
     setInternalQueue([])
-    setStats({ 
-      total: 0, 
-      pinned: 0, 
-      searching: 0, 
-      found: 0, 
-      notFound: 0, 
-      error: 0 
-    })
+    setStats(getEmptyStats())
   }, [])
 
-  const contextValue: AtomQueueContextValue = {
+  const value: AtomQueueContextValue = {
     queue: internalQueue,
+    currentTabId,
     addQuery,
     removeQuery,
     refreshQuery,
@@ -333,28 +338,23 @@ export function AtomQueueProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
-      {/* Render query handlers outside the main tree for better performance */}
-      <div style={{ display: 'none' }}>
-        {internalQueue.map(item => (
-          <QueueItemQueryHandler
-            key={item.id}
-            item={item}
-            onResultUpdate={handleResultUpdate}
-            enabled={!document.hidden || item.isPinned}
-          />
-        ))}
-      </div>
-      
-      <AtomQueueContext.Provider value={contextValue}>
-        {children}
-      </AtomQueueContext.Provider>
-    </>
+    <AtomQueueContext.Provider value={value}>
+      {/* Render query handlers for each queue item */}
+      {internalQueue.map(item => (
+        <QueueItemQueryHandler
+          key={item.id}
+          item={item}
+          onResultUpdate={handleResultUpdate}
+          enabled={!document.hidden || item.isPinned}
+        />
+      ))}
+      {children}
+    </AtomQueueContext.Provider>
   )
 }
 
 /**
- * Hook to use the atom queue context
+ * Hook to access the atom queue context
  */
 export function useAtomQueue() {
   const context = useContext(AtomQueueContext)
@@ -362,4 +362,17 @@ export function useAtomQueue() {
     throw new Error('useAtomQueue must be used within AtomQueueProvider')
   }
   return context
+}
+
+// Helper to get empty stats
+function getEmptyStats() {
+  return {
+    total: 0,
+    pinned: 0,
+    expanded: 0,
+    searching: 0,
+    found: 0,
+    notFound: 0,
+    errors: 0
+  }
 }

@@ -105,6 +105,7 @@ export interface QueueEvents {
   'query:removed': { queryId: string }
   'query:updated': { queryId: string; result: QueryResult }
   'queue:cleared': void
+  'tab:switched': { tabId: number; queue: QueueItem[] }
 }
 
 /**
@@ -114,4 +115,5 @@ export interface QueueOptions {
   maxItems?: number // Maximum items in queue (default: no limit)
   deduplicateQueries?: boolean // Whether to dedupe identical queries
   autoSearch?: boolean // Whether to automatically search on add
+  persistQueues?: boolean // Whether to persist queues to chrome.storage
 }
