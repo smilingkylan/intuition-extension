@@ -14,7 +14,8 @@ import {
   DollarSignIcon,
   UsersIcon,
   RefreshCw,
-  CheckCircleIcon
+  CheckCircleIcon,
+  GitBranchIcon
 } from 'lucide-react'
 import { AtomIcon } from '~/components/AtomIcon'
 import { formatUnits } from 'viem'
@@ -24,6 +25,7 @@ import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import type { QueueItem, AtomMatch } from '../../lib/atom-queue/types'
 import { fetchRelatedImage } from '../../lib/atom-queue/atom-image-queries'
 import { CONFIG } from '~/constants'
+import { CreateTripleFlow } from '../CreateTripleFlow/CreateTripleFlow'
 
 const { REVEL8_EXPLORER_DOMAIN } = CONFIG
 
@@ -50,6 +52,8 @@ interface MatchItemProps {
 }
 
 function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchItemProps) {
+  const [showCreateTriple, setShowCreateTriple] = useState(false)
+  
   // Now useQuery is called at the top level of a component
   const { data: relatedImage } = useQuery({
     queryKey: ['atom-image', match.termId],
@@ -58,16 +62,23 @@ function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchIte
     staleTime: 10 * 60 * 1000,
   })
 
+  const handleMatchClick = (e: React.MouseEvent) => {
+    // Don't open explorer if clicking on a button
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    window.open(`${REVEL8_EXPLORER_DOMAIN}/atoms/${match.termId}`, '_blank')
+  }
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="flex items-center gap-3 p-3 rounded-lg border bg-card match-item cursor-pointer"
-      onClick={() => {
-        window.open(`${REVEL8_EXPLORER_DOMAIN}/atoms/${match.termId}`, '_blank')
-      }}
-    >
+    <>
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="flex items-center gap-3 p-3 rounded-lg border bg-card match-item cursor-pointer"
+        onClick={handleMatchClick}
+      >
       {relatedImage?.imageUrl || match.displayInfo?.avatarUrl ? (
         <img 
           src={fixImageUrl(relatedImage?.imageUrl || match.displayInfo?.avatarUrl)}
@@ -102,10 +113,36 @@ function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchIte
           </span>
         </div>
       </div>
-      <Badge variant="outline" className="text-xs">
-        #{index + 1}
-      </Badge>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowCreateTriple(true)
+          }}
+          className="h-7 px-2"
+          title="Create Triple"
+        >
+          <GitBranchIcon className="h-3.5 w-3.5" />
+        </Button>
+        <Badge variant="outline" className="text-xs">
+          #{index + 1}
+        </Badge>
+      </div>
     </motion.div>
+    
+    {showCreateTriple && (
+      <CreateTripleFlow
+        atomData={{
+          termId: match.termId,
+          label: match.label,
+          displayLabel: match.displayLabel
+        }}
+        onClose={() => setShowCreateTriple(false)}
+      />
+    )}
+    </>
   )
 }
 
