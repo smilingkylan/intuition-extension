@@ -85,6 +85,16 @@ export interface AddressDetectedMessage extends MessageBase {
   }
 }
 
+export interface SocialAtomDetectedMessage extends MessageBase {
+  type: 'SOCIAL_ATOM_DETECTED'
+  data: {
+    username: string
+    platform: string
+    detectedAt: number
+    url: string
+  }
+}
+
 export type ExtensionMessage = 
   | TweetHoveredMessage 
   | ModeChangedMessage 
@@ -92,6 +102,7 @@ export type ExtensionMessage =
   | AtomQueryMessage
   | UrlDataMessage
   | AddressDetectedMessage
+  | SocialAtomDetectedMessage
 
 // Helper type guards
 export const isTweetHoveredMessage = (message: any): message is TweetHoveredMessage => {
@@ -116,4 +127,10 @@ export const isUrlDataMessage = (message: any): message is UrlDataMessage => {
 
 export const isAddressDetectedMessage = (message: any): message is AddressDetectedMessage => {
   return message?.type === 'ADDRESS_DETECTED'
+}
+
+export const isSocialAtomDetectedMessage = (message: any): message is SocialAtomDetectedMessage => {
+  return message?.type === 'SOCIAL_ATOM_DETECTED' && 
+         message?.data?.username && 
+         message?.data?.platform
 }

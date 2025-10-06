@@ -7,6 +7,7 @@ import { NetworkWarning } from '../NetworkWarning'
 import { useAtomQueryListener } from '../../hooks/useAtomQueryListener'
 import { useUrlAndAddressListener } from '../../hooks/useUrlAndAddressListener'
 import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
+import { useCachedAtoms } from '../../hooks/useCachedAtoms'
 
 export function Dashboard() {
   const [isLoading, setIsLoading] = useState(false)
@@ -17,6 +18,9 @@ export function Dashboard() {
   
   // Listen for URL and address detection from global content scripts
   useUrlAndAddressListener()
+  
+  // Load cached atoms from background service
+  useCachedAtoms()
   
   // Simulate loading
   const handleRefresh = () => {

@@ -15,10 +15,14 @@ export class TwitterMouseTracker {
   private collectedUsernames: Set<string> = new Set()
   private atomCreationTimer: number | null = null
   private twitterApi = getTwitterApiClient()
+  private scanDebounceTimer: number | null = null
+  private detectedUsernames: Set<string> = new Set()
 
   constructor() {
     this.initMouseTracking()
     this.setupVisibilityHandling()
+    this.scanPageForUsernames() // Initial scan
+    this.setupMutationObserver() // Watch for new tweets
   }
 
   private initMouseTracking() {
@@ -34,6 +38,70 @@ export class TwitterMouseTracker {
         this.clearCurrentHover()
       }
     })
+  }
+  
+  /**
+   * Set up mutation observer to detect new tweets being added to the page
+   */
+  private setupMutationObserver() {
+    const observer = new MutationObserver((mutations) => {
+      // Debounce to avoid scanning too frequently
+      if (this.scanDebounceTimer) {
+        clearTimeout(this.scanDebounceTimer)
+      }
+      
+      this.scanDebounceTimer = window.setTimeout(() => {
+        this.scanPageForUsernames()
+      }, 1000)
+    })
+    
+    // Observe the main timeline container
+    const timelineContainer = document.querySelector('main') || document.body
+    observer.observe(timelineContainer, {
+      childList: true,
+      subtree: true
+    })
+  }
+  
+  /**
+   * Scan the entire page for Twitter usernames and send them as social atom detections
+   */
+  private scanPageForUsernames() {
+    console.log('[TwitterMouseTracker] Scanning page for usernames...')
+    
+    // Find all tweet articles on the page
+    const tweets = document.querySelectorAll('article[data-testid="tweet"]')
+    const newUsernames: string[] = []
+    
+    tweets.forEach((article) => {
+      const username = this.extractUsername(article as HTMLElement)
+      
+      // Only process if we haven't seen this username before
+      if (username && username !== 'unknown' && !this.detectedUsernames.has(username)) {
+        this.detectedUsernames.add(username)
+        newUsernames.push(username)
+      }
+    })
+    
+    // Send all new usernames as social atom detections
+    if (newUsernames.length > 0) {
+      console.log(`[TwitterMouseTracker] Found ${newUsernames.length} new usernames:`, newUsernames)
+      
+      newUsernames.forEach(username => {
+        chrome.runtime.sendMessage({
+          type: 'SOCIAL_ATOM_DETECTED',
+          data: {
+            username,
+            platform: 'x.com',
+            detectedAt: Date.now(),
+            url: window.location.href
+          },
+          source: 'x-com-scanner'
+        }).catch(error => {
+          console.debug('[TwitterMouseTracker] Could not send social atom detection:', error.message)
+        })
+      })
+    }
   }
 
   private handleMouseMove(event: MouseEvent) {
