@@ -1,4 +1,4 @@
-import { graphQLQuery } from '~/common/util/api'
+import { graphQLQuery } from '~/util/api'
 import { atomQueryKeys } from './query-keys'
 import type { AtomMatch, MatchSummary } from './types'
 import { getAtomLabelService } from './atom-label-service'

@@ -1,4 +1,4 @@
-import { graphQLQuery } from '~/common/util/api'
+import { graphQLQuery } from '~/util/api'
 
 // Query to get triples containing a specific atom
 const getTriplesContainingAtomQuery = `
@@ -19,6 +19,62 @@ const getTriplesContainingAtomQuery = `
           { subject_id: { _eq: $atomId } },
           { predicate_id: { _eq: $atomId } },
           { object_id: { _eq: $atomId } }
+        ]
+      }
+    ) {
+      term_id
+      subject_id
+      predicate_id
+      object_id
+      subject {
+        term_id
+        data
+        label
+      }
+      predicate {
+        term_id
+        data
+        label
+      }
+      object {
+        term_id
+        data
+        label
+      }
+      term {
+        vaults(where: { curve_id: { _eq: "1" } }) {
+          current_share_price
+          total_shares
+          position_count
+        }
+      }
+    }
+  }
+`
+
+// Query to get triples containing a specific atom with search filter
+const getTriplesContainingAtomWithSearchQuery = `
+  query GetTriplesContainingAtomWithSearch($atomId: String!, $searchTerm: String, $limit: Int = 50) {
+    triples(
+      order_by: { 
+        term: {
+          vaults_aggregate: {
+            sum: {
+              total_shares: desc
+            }
+          }
+        }
+      }
+      limit: $limit
+      where: {
+        _and: [
+          {
+            _or: [
+              { subject_id: { _eq: $atomId } },
+              { predicate_id: { _eq: $atomId } },
+              { object_id: { _eq: $atomId } }
+            ]
+          }
         ]
       }
     ) {
@@ -156,20 +212,27 @@ export async function getSuggestedAtomsForPosition(
   currentAtomId: string,
   currentAtomData: string,
   currentPosition: 'subject' | 'predicate' | 'object',
-  targetPosition: 'subject' | 'predicate' | 'object'
+  targetPosition: 'subject' | 'predicate' | 'object',
+  searchTerm?: string
 ): Promise<TripleSuggestion[]> {
   try {
     console.log('[TripleSuggestions] Fetching suggestions for:', {
       currentAtomId,
       currentPosition,
-      targetPosition
+      targetPosition,
+      searchTerm
     })
     
     // First, get triples that contain the current atom
-    const response = await graphQLQuery<{ triples: any[] }>(
-      getTriplesContainingAtomQuery,
-      { atomId: currentAtomId, limit: 50 }
-    )
+    // Use search-enabled query if search term is provided
+    const query = searchTerm ? getTriplesContainingAtomWithSearchQuery : getTriplesContainingAtomQuery
+    const variables: any = { atomId: currentAtomId, limit: 50 }
+    
+    if (searchTerm) {
+      variables.searchTerm = `%${searchTerm}%`
+    }
+    
+    const response = await graphQLQuery<{ triples: any[] }>(query, variables)
     
     if (!response.data?.triples || response.data.triples.length === 0) {
       console.log('[TripleSuggestions] No triples found for atom:', currentAtomId)
@@ -177,7 +240,7 @@ export async function getSuggestedAtomsForPosition(
       // Fallback: Try to find triples by atom type
       const atomType = detectAtomType(currentAtomData)
       if (atomType.pattern && atomType.type !== 'other') {
-        return await getSuggestedAtomsByType(atomType, currentPosition, targetPosition)
+        return await getSuggestedAtomsByType(atomType, currentPosition, targetPosition, searchTerm)
       }
       
       return []
@@ -241,7 +304,7 @@ export async function getSuggestedAtomsForPosition(
     })
     
     // Convert to array and sort by frequency and stake
-    const suggestions: TripleSuggestion[] = Array.from(atomFrequency.entries())
+    let suggestions: TripleSuggestion[] = Array.from(atomFrequency.entries())
       .map(([atomId, data]) => ({
         atomId,
         label: data.atom.label || data.atom.data || '',
@@ -250,6 +313,18 @@ export async function getSuggestedAtomsForPosition(
         frequency: data.count,
         totalStake: data.totalStake.toString()
       }))
+    
+    // Filter by search term if provided
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
+      suggestions = suggestions.filter(s => 
+        s.label.toLowerCase().includes(searchLower) ||
+        s.data.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    // Sort and slice
+    suggestions = suggestions
       .sort((a, b) => {
         // Sort by frequency first, then by stake
         if (b.frequency !== a.frequency) {
@@ -275,7 +350,8 @@ export async function getSuggestedAtomsForPosition(
 export async function getSuggestedAtomsByType(
   atomType: AtomType,
   position: 'subject' | 'predicate' | 'object',
-  targetPosition: 'subject' | 'predicate' | 'object'
+  targetPosition: 'subject' | 'predicate' | 'object',
+  searchTerm?: string
 ): Promise<TripleSuggestion[]> {
   try {
     if (!atomType.pattern) return []
@@ -340,7 +416,7 @@ export async function getSuggestedAtomsByType(
       }
     })
     
-    const suggestions: TripleSuggestion[] = Array.from(atomFrequency.entries())
+    let suggestions: TripleSuggestion[] = Array.from(atomFrequency.entries())
       .map(([atomId, data]) => ({
         atomId,
         label: data.atom.label || data.atom.data || '',
@@ -349,6 +425,18 @@ export async function getSuggestedAtomsByType(
         frequency: data.count,
         totalStake: data.totalStake.toString()
       }))
+    
+    // Filter by search term if provided
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
+      suggestions = suggestions.filter(s => 
+        s.label.toLowerCase().includes(searchLower) ||
+        s.data.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    // Sort and slice
+    suggestions = suggestions
       .sort((a, b) => {
         if (b.frequency !== a.frequency) {
           return b.frequency - a.frequency
