@@ -12,7 +12,7 @@ import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Search, DollarSignIcon, U
 import { useQueryClient } from '@tanstack/react-query'
 import { useTransactionProvider } from '../../providers/TransactionProvider'
 import { formatUnits } from 'viem'
-import { searchAtomsByLabel } from '../../lib/atom-queue/atom-search-queries'
+import { searchAtomsByLabel, searchAtomsPartial } from '../../lib/atom-queue/atom-search-queries'
 import { AtomIcon } from '~/components/AtomIcon'
 import { toast } from '~/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
@@ -20,7 +20,6 @@ import { createTriples } from '@0xintuition/protocol'
 import type { AtomMatch } from '../../lib/atom-queue/types'
 import { CONFIG } from '~/constants/web3'
 import { ToggleGroup, ToggleGroupItem } from '~/common/components/ui/toggle-group'
-import { getSuggestedAtomsForPosition, type TripleSuggestion } from '../../lib/atom-queue/triple-suggestion-queries'
 import { RecentAtomsService } from '../../lib/atom-queue/recent-atoms-service'
 
 interface CreateTripleFlowProps {
@@ -60,9 +59,7 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
   const [estimatedCost, setEstimatedCost] = useState<bigint | null>(null)
   
   // Tab selection and suggestions
-  const [resultsTab, setResultsTab] = useState<'match' | 'suggested'>('suggested')
-  const [suggestions, setSuggestions] = useState<TripleSuggestion[]>([])
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [resultsTab, setResultsTab] = useState<'match'>('match')
   
   const queryClient = useQueryClient()
   const { contractConfig, publicClient, walletClient } = useTransactionProvider()
@@ -70,7 +67,7 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
   // Search for atoms - always enabled when in atom selection steps
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['atom-search', searchQuery],
-    queryFn: () => searchAtomsByLabel(searchQuery),
+    queryFn: () => searchAtomsPartial(searchQuery),
     enabled: searchQuery.length > 0 && (step === 'first-atom' || step === 'second-atom'),
     staleTime: 5 * 60 * 1000,
   })
@@ -452,14 +449,11 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
                 <ToggleGroup 
                   type="single" 
                   value={resultsTab} 
-                  onValueChange={(value) => value && setResultsTab(value as 'match' | 'suggested')}
+                  onValueChange={(value) => value && setResultsTab(value as 'match')}
                   className="border rounded-lg p-1 bg-muted/30"
                 >
                   <ToggleGroupItem value="match" className="px-6 data-[state=on]:bg-background">
-                    Best Match
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="suggested" className="px-6 data-[state=on]:bg-background">
-                    Suggested
+                    Search Results
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
@@ -522,80 +516,6 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
                       </p>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Suggested Tab */}
-              {resultsTab === 'suggested' && (
-                <div className="space-y-2">
-                  {loadingSuggestions ? (
-                    <div className="min-h-[300px] flex items-center justify-center">
-                      <div className="flex items-center">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span className="ml-2 text-sm text-muted-foreground">Loading suggestions...</span>
-                      </div>
-                    </div>
-                  ) : (() => {
-                    // Filter suggestions by search query if present
-                    const filteredSuggestions = searchQuery.length > 0
-                      ? suggestions.filter(s => 
-                          (s.label?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-                          (s.displayLabel?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-                        )
-                      : suggestions
-                    
-                    return filteredSuggestions.length > 0 ? (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          {searchQuery.length > 0 
-                            ? `Smart suggestions matching "${searchQuery}"`
-                            : 'Based on highest staked triples with similar patterns'
-                          }
-                        </p>
-                        <div className="space-y-2 max-h-96 min-h-[280px] overflow-y-auto">
-                          {filteredSuggestions.map((suggestion, index) => (
-                            <div
-                              key={suggestion.atomId}
-                              className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent cursor-pointer transition-colors"
-                              onClick={() => handleAtomSelect({
-                                termId: suggestion.atomId,
-                                label: suggestion.label,
-                                displayLabel: suggestion.displayLabel || suggestion.label,
-                                totalStaked: suggestion.totalStake,
-                                totalPositions: suggestion.frequency
-                              } as AtomMatch)}
-                            >
-                              <AtomIcon label={suggestion.label} size={40} className="rounded-full flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm truncate">
-                                  {suggestion.displayLabel || suggestion.label}
-                                </h4>
-                                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                                  <span className="flex items-center gap-1">
-                                    <DollarSignIcon className="h-3 w-3" />
-                                    {formatStake(suggestion.totalStake)}
-                                  </span>
-                                  <span>Used {suggestion.frequency}x</span>
-                                </div>
-                              </div>
-                              <Badge variant="secondary" className="text-xs">
-                                #{index + 1}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="min-h-[300px] flex items-center justify-center">
-                        <p className="text-sm text-muted-foreground text-center">
-                          {searchQuery.length > 0 
-                            ? `No suggestions found matching "${searchQuery}"`
-                            : 'No suggestions available based on triple patterns'
-                          }
-                        </p>
-                      </div>
-                    )
-                  })()}
                 </div>
               )}
 

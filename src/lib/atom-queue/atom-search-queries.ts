@@ -3,14 +3,54 @@ import { atomQueryKeys } from './query-keys'
 import type { AtomMatch, MatchSummary } from './types'
 import { getAtomLabelService } from './atom-label-service'
 
-// GraphQL query to search atoms by label with vault info and transaction details
-const searchAtomsQuery = `
-  query SearchAtomsByLabel($label: String!) {
+// GraphQL query for exact match (case-insensitive) - used by Atom Queue
+const searchAtomsExactQuery = `
+  query SearchAtomsExact($label: String!) {
     atoms(
       where: { 
         _or: [
           { data: { _ilike: $label } },
           { label: { _ilike: $label } }
+        ]
+      }
+    ) {
+      term_id
+      data
+      label
+      created_at
+      block_number
+      transaction_hash
+      creator_id
+      creator {
+        id
+        label
+      }
+      term {
+        vaults(where: { curve_id: { _eq: "1" } }) {
+          term_id
+          total_shares
+          position_count
+          current_share_price
+        }
+      }
+    }
+  }
+`
+
+// GraphQL query for partial match with broader search - used by CreateTripleFlow
+const searchAtomsPartialQuery = `
+  query SearchAtomsPartial($searchTerm: String!) {
+    atoms(
+      where: {
+        _or: [
+          { label: { _ilike: $searchTerm } },
+          { data: { _ilike: $searchTerm } },
+          { value: { thing: { name: { _ilike: $searchTerm } } } },
+          { value: { thing: { description: { _ilike: $searchTerm } } } },
+          { value: { person: { name: { _ilike: $searchTerm } } } },
+          { value: { person: { description: { _ilike: $searchTerm } } } },
+          { value: { organization: { name: { _ilike: $searchTerm } } } },
+          { value: { organization: { description: { _ilike: $searchTerm } } } }
         ]
       }
     ) {
@@ -43,16 +83,16 @@ export interface SearchResult {
 }
 
 /**
- * Pure async function for searching atoms by label
- * This function is designed to work with React Query
+ * Pure async function for searching atoms by exact label match (case-insensitive)
+ * This function is designed to work with React Query and is used by the Atom Queue
  * 
- * @param label - The label to search for
+ * @param label - The exact label to search for
  * @returns Search results with matches and summary
  */
 export async function searchAtomsByLabel(label: string): Promise<SearchResult> {
   const response = await graphQLQuery<{ atoms: any[] }>(
-    searchAtomsQuery,
-    { label }
+    searchAtomsExactQuery,
+    { label }  // No wildcards for exact match
   )
   
   if (!response.data?.atoms || response.data.atoms.length === 0) {
@@ -103,17 +143,17 @@ export async function searchAtomsByLabel(label: string): Promise<SearchResult> {
     Number(b.totalStaked) - Number(a.totalStaked)
   )
 
-  // Transform labels for display - only for top 3 matches
+  // Transform labels for display - for all matches
   const labelService = getAtomLabelService()
-  const top3Matches = sortedMatches.slice(0, 3)
+  const allMatches = sortedMatches
   
   // Transform labels in parallel
   const labelTransformations = await labelService.transformLabels(
-    top3Matches.map(match => match.label)
+    allMatches.map(match => match.label)
   )
   
   // Apply transformations to matches
-  const transformedMatches = top3Matches.map(match => {
+  const transformedMatches = allMatches.map(match => {
     const displayInfo = labelTransformations.get(match.label)
     if (displayInfo) {
       return {
@@ -138,7 +178,111 @@ export async function searchAtomsByLabel(label: string): Promise<SearchResult> {
     totalPositions: processedMatches.reduce((sum, match) => 
       sum + match.totalPositions, 0
     ),
-    topMatches: transformedMatches
+    topMatches: transformedMatches.slice(0, 3)
+  }
+
+  return {
+    matches: transformedMatches,
+    summary
+  }
+}
+
+/**
+ * Search atoms with partial matching (contains search term)
+ * This function is designed for broader searches like in the triple creation flow
+ * 
+ * @param searchTerm - The term to search for (partial matches)
+ * @returns Search results with matches and summary
+ */
+export async function searchAtomsPartial(searchTerm: string): Promise<SearchResult> {
+  const response = await graphQLQuery<{ atoms: any[] }>(
+    searchAtomsPartialQuery,
+    { searchTerm: `%${searchTerm}%` }  // Add wildcards for partial matching
+  )
+  
+  if (!response.data?.atoms || response.data.atoms.length === 0) {
+    return {
+      matches: [],
+      summary: {
+        totalMatches: 0,
+        totalStaked: '0',
+        totalPositions: 0,
+        topMatches: []
+      }
+    }
+  }
+
+  // Process atom data (same logic as searchAtomsByLabel)
+  const processedMatches: AtomMatch[] = response.data.atoms.map(atom => {
+    const vaults = atom.term?.vaults || []
+    const totalStaked = vaults.reduce((sum: number, vault: any) => {
+      const sharePrice = parseFloat(vault.current_share_price || '0')
+      const totalShares = parseFloat(vault.total_shares || '0')
+      return sum + (sharePrice * totalShares)
+    }, 0).toString()
+    
+    const totalPositions = vaults.reduce((sum: number, vault: any) => {
+      return sum + (vault.position_count || 0)
+    }, 0)
+
+    return {
+      termId: atom.term_id,
+      label: atom.label || atom.data || '',
+      data: atom.data,
+      createdAt: atom.created_at,
+      blockNumber: atom.block_number,
+      transactionHash: atom.transaction_hash,
+      creator: {
+        id: atom.creator_id,
+        label: atom.creator?.label || atom.creator_id
+      },
+      vaults,
+      totalStaked,
+      totalPositions
+    }
+  })
+
+  // Sort by stake (highest first)
+  const sortedMatches = processedMatches.sort((a, b) => 
+    Number(b.totalStaked) - Number(a.totalStaked)
+  )
+
+  // Transform labels for display - for all matches
+  const labelService = getAtomLabelService()
+  const allMatches = sortedMatches
+  
+  // Transform labels in parallel
+  const labelTransformations = await labelService.transformLabels(
+    allMatches.map(match => match.label)
+  )
+  
+  // Apply transformations to matches
+  const transformedMatches = allMatches.map(match => {
+    const displayInfo = labelTransformations.get(match.label)
+    if (displayInfo) {
+      return {
+        ...match,
+        displayLabel: displayInfo.displayLabel,
+        displayInfo: {
+          platform: displayInfo.platform,
+          username: displayInfo.username,
+          avatarUrl: displayInfo.avatarUrl
+        }
+      }
+    }
+    return match
+  })
+
+  // Calculate summary
+  const summary: MatchSummary = {
+    totalMatches: processedMatches.length,
+    totalStaked: processedMatches.reduce((sum, match) => 
+      (Number(sum) + Number(match.totalStaked)).toString(), '0'
+    ),
+    totalPositions: processedMatches.reduce((sum, match) => 
+      sum + match.totalPositions, 0
+    ),
+    topMatches: transformedMatches.slice(0, 3)
   }
 
   return {
