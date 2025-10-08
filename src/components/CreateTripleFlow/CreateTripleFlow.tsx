@@ -21,7 +21,7 @@ import type { AtomMatch } from '../../lib/atom-queue/types'
 import { CONFIG } from '~/constants/web3'
 import { ToggleGroup, ToggleGroupItem } from '~/common/components/ui/toggle-group'
 import { RecentAtomsService } from '../../lib/atom-queue/recent-atoms-service'
-import { getSuggestedAtomsForPosition, type TripleSuggestion } from '../../lib/atom-queue/triple-suggestion-queries'
+import { getSuggestedAtomsForPosition, getMostFrequentAtomsForPosition, type TripleSuggestion } from '../../lib/atom-queue/triple-suggestion-queries'
 
 interface CreateTripleFlowProps {
   atomData: {
@@ -65,12 +65,51 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
   const queryClient = useQueryClient()
   const { contractConfig, publicClient, walletClient } = useTransactionProvider()
 
+  // Utility function to shorten atom IDs
+  const shortenAtomId = (atomId: string) => {
+    if (!atomId || atomId.length < 12) return atomId
+    // Remove 0x prefix, take first 5 and last 5 characters
+    const withoutPrefix = atomId.slice(2)
+    return `0x${withoutPrefix.slice(0, 5)}...${withoutPrefix.slice(-5)}`
+  }
+
   // Search for atoms - always enabled when in atom selection steps
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['atom-search', searchQuery],
     queryFn: () => searchAtomsPartial(searchQuery),
     enabled: searchQuery.length > 0 && (step === 'first-atom' || step === 'second-atom'),
     staleTime: 5 * 60 * 1000,
+  })
+
+  // Fetch default atoms to show before user searches
+  const { data: defaultAtoms, isLoading: isLoadingDefaults } = useQuery({
+    queryKey: ['default-atoms', step, triple.position, triple.subject, triple.predicate, triple.object],
+    queryFn: async () => {
+      // Determine what position we're filling
+      let targetPosition: Position
+      if (step === 'first-atom') {
+        targetPosition = triple.position === 'subject' ? 'predicate' : 
+                        triple.position === 'predicate' ? 'subject' : 'subject'
+      } else {
+        targetPosition = !triple.subject ? 'subject' : 
+                        !triple.predicate ? 'predicate' : 'object'
+      }
+      
+      // Get most frequently used atoms for this position
+      const suggestions = await getMostFrequentAtomsForPosition(targetPosition, 10)
+      
+      // Convert to AtomMatch format for consistency
+      return suggestions.map(s => ({
+        termId: s.atomId,
+        label: s.label,
+        data: s.data,
+        displayLabel: s.displayLabel,
+        totalStaked: s.totalStake,
+        totalPositions: s.frequency // Use frequency as a stand-in for position count
+      } as AtomMatch))
+    },
+    enabled: (step === 'first-atom' || step === 'second-atom') && searchQuery.length === 0,
+    staleTime: 10 * 60 * 1000,
   })
 
   // Fetch balance and calculate cost
@@ -467,11 +506,54 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
               {resultsTab === 'search' && (
                 <div className="space-y-2">
                   {searchQuery.length === 0 ? (
-                    <div className="min-h-[300px] flex items-center justify-center">
-                      <p className="text-sm text-muted-foreground text-center">
-                        Type to search for atoms by name...
-                      </p>
-                    </div>
+                    isLoadingDefaults ? (
+                      <div className="min-h-[300px] flex items-center justify-center">
+                        <div className="flex items-center">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                          <span className="ml-2 text-sm text-muted-foreground">Loading suggestions...</span>
+                        </div>
+                      </div>
+                    ) : defaultAtoms && defaultAtoms.length > 0 ? (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          Most frequently used atoms
+                        </p>
+                        <div className="space-y-2 max-h-96 min-h-[300px] overflow-y-auto">
+                          {defaultAtoms.map((match) => (
+                            <div
+                              key={match.termId}
+                              className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent cursor-pointer transition-colors"
+                              onClick={() => handleAtomSelect(match)}
+                            >
+                              <AtomIcon label={match.label} size={40} className="rounded-full flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm truncate">
+                                  {match.displayLabel || match.label}
+                                </h4>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                  <span className="font-mono">
+                                    {shortenAtomId(match.termId)}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <DollarSignIcon className="h-3 w-3" />
+                                    {formatStake(match.totalStaked)}
+                                  </span>
+                                  <Badge variant="secondary" className="text-xs">
+                                    Used {match.totalPositions}x
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="min-h-[300px] flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground text-center">
+                          Type to search for atoms by name...
+                        </p>
+                      </div>
+                    )
                   ) : isSearching ? (
                     <div className="min-h-[300px] flex items-center justify-center">
                       <div className="flex items-center">
@@ -497,6 +579,9 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
                                 {match.displayLabel || match.label}
                               </h4>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                <span className="font-mono">
+                                  {shortenAtomId(match.termId)}
+                                </span>
                                 <span className="flex items-center gap-1">
                                   <DollarSignIcon className="h-3 w-3" />
                                   {formatStake(match.totalStaked)}
@@ -559,6 +644,9 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
                                 {suggestion.displayLabel || suggestion.label}
                               </h4>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                <span className="font-mono">
+                                  {shortenAtomId(suggestion.atomId)}
+                                </span>
                                 <span className="flex items-center gap-1">
                                   <DollarSignIcon className="h-3 w-3" />
                                   {formatStake(suggestion.totalStake)}

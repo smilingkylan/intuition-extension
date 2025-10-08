@@ -160,6 +160,42 @@ const getTriplesByTypePatternQuery = `
   }
 `
 
+// Query to get most frequently used atoms by position
+const getMostFrequentAtomsByPositionQuery = `
+  query GetMostFrequentAtomsByPosition($limit: Int = 1000) {
+    triples(
+      limit: $limit
+      order_by: { created_at: desc }
+    ) {
+      subject_id
+      predicate_id
+      object_id
+      subject {
+        term_id
+        data
+        label
+      }
+      predicate {
+        term_id
+        data
+        label
+      }
+      object {
+        term_id
+        data
+        label
+      }
+      term {
+        vaults(where: { curve_id: { _eq: "1" } }) {
+          current_share_price
+          total_shares
+          position_count
+        }
+      }
+    }
+  }
+`
+
 interface AtomType {
   type: 'social' | 'evm-address' | 'url' | 'other'
   pattern?: string
@@ -449,6 +485,81 @@ export async function getSuggestedAtomsByType(
     return suggestions
   } catch (error) {
     console.error('[TripleSuggestions] Error fetching by type:', error)
+    return []
+  }
+}
+
+/**
+ * Get most frequently used atoms for a specific position
+ * This is useful for showing default suggestions before the user searches
+ * 
+ * @param position - The position to get frequent atoms for (subject/predicate/object)
+ * @param limit - Maximum number of atoms to return
+ */
+export async function getMostFrequentAtomsForPosition(
+  position: 'subject' | 'predicate' | 'object',
+  limit: number = 10
+): Promise<TripleSuggestion[]> {
+  try {
+    console.log('[TripleSuggestions] Fetching most frequent atoms for position:', position)
+    
+    // Fetch a large sample of recent triples
+    const response = await graphQLQuery<{ triples: any[] }>(
+      getMostFrequentAtomsByPositionQuery,
+      { limit: 1000 }
+    )
+    
+    if (!response.data?.triples || response.data.triples.length === 0) {
+      console.log('[TripleSuggestions] No triples found')
+      return []
+    }
+    
+    console.log('[TripleSuggestions] Analyzing', response.data.triples.length, 'triples')
+    
+    // Count frequency of atoms in the specified position
+    const atomFrequency = new Map<string, {
+      atom: any
+      count: number
+      totalStake: bigint
+    }>()
+    
+    response.data.triples.forEach(triple => {
+      const atom = triple[position]
+      if (!atom) return
+      
+      const atomId = atom.term_id
+      const stake = triple.term?.vaults?.[0]?.total_shares || '0'
+      
+      if (atomFrequency.has(atomId)) {
+        const existing = atomFrequency.get(atomId)!
+        existing.count++
+        existing.totalStake += BigInt(stake)
+      } else {
+        atomFrequency.set(atomId, {
+          atom,
+          count: 1,
+          totalStake: BigInt(stake)
+        })
+      }
+    })
+    
+    // Convert to array and sort by frequency
+    const suggestions: TripleSuggestion[] = Array.from(atomFrequency.entries())
+      .map(([atomId, data]) => ({
+        atomId,
+        label: data.atom.label || data.atom.data || '',
+        data: data.atom.data || '',
+        displayLabel: data.atom.label,
+        frequency: data.count,
+        totalStake: data.totalStake.toString()
+      }))
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, limit)
+    
+    console.log('[TripleSuggestions] Returning', suggestions.length, 'most frequent atoms')
+    return suggestions
+  } catch (error) {
+    console.error('[TripleSuggestions] Error fetching frequent atoms:', error)
     return []
   }
 }
