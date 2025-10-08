@@ -16,12 +16,12 @@ import { searchAtomsByLabel, searchAtomsPartial } from '../../lib/atom-queue/ato
 import { AtomIcon } from '~/components/AtomIcon'
 import { toast } from '~/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
-import { createTriples } from '@0xintuition/protocol'
 import type { AtomMatch } from '../../lib/atom-queue/types'
 import { CONFIG } from '~/constants/web3'
 import { ToggleGroup, ToggleGroupItem } from '~/common/components/ui/toggle-group'
 import { RecentAtomsService } from '../../lib/atom-queue/recent-atoms-service'
 import { getSuggestedAtomsForPosition, getMostFrequentAtomsForPosition, type TripleSuggestion } from '../../lib/atom-queue/triple-suggestion-queries'
+import { useAtomCreation } from '../../hooks/useAtomCreation'
 
 interface CreateTripleFlowProps {
   atomData: {
@@ -64,6 +64,7 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
   
   const queryClient = useQueryClient()
   const { contractConfig, publicClient, walletClient } = useTransactionProvider()
+  const { createTriples: hookCreateTriples, isCreating: isHookCreating } = useAtomCreation()
 
   // Utility function to shorten atom IDs
   const shortenAtomId = (atomId: string) => {
@@ -298,55 +299,52 @@ export function CreateTripleFlow({ atomData, onClose }: CreateTripleFlowProps) {
         throw new Error(`Insufficient balance. You need ${formatUnits(estimatedCost, 18)} ETH but only have ${formatUnits(balance, 18)} ETH`)
       }
 
-      if (!walletClient || !publicClient || !contractConfig) {
-        throw new Error('Wallet not connected')
+      console.log('[CreateTripleFlow] Creating triple with atoms:', {
+        subject: { id: triple.subject.termId, label: triple.subject.label },
+        predicate: { id: triple.predicate.termId, label: triple.predicate.label },
+        object: { id: triple.object.termId, label: triple.object.label },
+      })
+
+      // Create the triple using the hook
+      const tripleData = {
+        subjectId: triple.subject.termId,
+        predicateId: triple.predicate.termId,
+        objectId: triple.object.termId,
       }
 
-      // Create the triple
-      const config = {
-        address: contractConfig.contract_address as `0x${string}`,
-        abi: contractConfig.contract_abi,
-        walletClient,
-        publicClient,
+      const result = await hookCreateTriples([tripleData])
+
+      if (result) {
+        console.log('[CreateTripleFlow] Triple created successfully:', result)
+        
+        // Track atom usage for future suggestions
+        await RecentAtomsService.trackAtomUsage({
+          termId: triple.subject.termId,
+          label: triple.subject.label,
+          displayLabel: triple.subject.displayLabel
+        })
+        await RecentAtomsService.trackAtomUsage({
+          termId: triple.predicate.termId,
+          label: triple.predicate.label,
+          displayLabel: triple.predicate.displayLabel
+        })
+        await RecentAtomsService.trackAtomUsage({
+          termId: triple.object.termId,
+          label: triple.object.label,
+          displayLabel: triple.object.displayLabel
+        })
+        
+        // Set the created triple ID from the result
+        setCreatedTripleId(result.transactionHash)
+        setStep('success')
+        
+        toast({
+          title: "Triple Created!",
+          description: "Your triple has been successfully created on-chain",
+        })
+      } else {
+        throw new Error('No result returned from triple creation')
       }
-
-      const transactionHash = await createTriples(config, {
-        args: [
-          [triple.subject.termId], // subjectIds
-          [triple.predicate.termId], // predicateIds
-          [triple.object.termId], // objectIds
-          [estimatedCost!], // assets
-        ],
-        value: estimatedCost!,
-      })
-
-      console.log('Triple creation transaction:', transactionHash)
-      
-      // Track atom usage for future suggestions
-      await RecentAtomsService.trackAtomUsage({
-        termId: triple.subject.termId,
-        label: triple.subject.label,
-        displayLabel: triple.subject.displayLabel
-      })
-      await RecentAtomsService.trackAtomUsage({
-        termId: triple.predicate.termId,
-        label: triple.predicate.label,
-        displayLabel: triple.predicate.displayLabel
-      })
-      await RecentAtomsService.trackAtomUsage({
-        termId: triple.object.termId,
-        label: triple.object.label,
-        displayLabel: triple.object.displayLabel
-      })
-      
-      // TODO: Parse the event to get tripleId
-      setCreatedTripleId(transactionHash)
-      setStep('success')
-      
-      toast({
-        title: "Triple Created!",
-        description: "Your triple has been successfully created on-chain",
-      })
       
     } catch (err: any) {
       console.error('[CreateTripleFlow] Error creating triple:', err)

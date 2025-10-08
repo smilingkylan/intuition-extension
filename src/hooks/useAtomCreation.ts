@@ -311,6 +311,8 @@ export function useAtomCreation() {
       createAtoms,
       createTriples
     },
+    createAtoms,
+    createTriples,
     isCreating,
     error,
     reset
