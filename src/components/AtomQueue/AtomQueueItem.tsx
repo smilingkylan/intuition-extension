@@ -25,7 +25,7 @@ import { useAtomQueue } from '../../hooks/useAtomQueueWithQuery'
 import type { QueueItem, AtomMatch } from '../../lib/atom-queue/types'
 import { fetchRelatedImage } from '../../lib/atom-queue/atom-image-queries'
 import { CONFIG } from '~/constants'
-import { CreateTripleFlow } from '../CreateTripleFlow/CreateTripleFlow'
+import { useCreateTripleModal } from '../../providers/ModalProvider'
 
 const { REVEL8_EXPLORER_DOMAIN } = CONFIG
 
@@ -52,7 +52,7 @@ interface MatchItemProps {
 }
 
 function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchItemProps) {
-  const [showCreateTriple, setShowCreateTriple] = useState(false)
+  const createTripleModal = useCreateTripleModal()
   
   // Now useQuery is called at the top level of a component
   const { data: relatedImage } = useQuery({
@@ -119,7 +119,11 @@ function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchIte
           size="sm"
           onClick={(e) => {
             e.stopPropagation()
-            setShowCreateTriple(true)
+            createTripleModal({
+              termId: match.termId,
+              label: match.label,
+              displayLabel: match.displayLabel
+            })
           }}
           className="h-7 px-2"
           title="Create Triple"
@@ -131,18 +135,6 @@ function MatchItem({ match, index, isExpanded, isPinned, formatStake }: MatchIte
         </Badge>
       </div>
     </motion.div>
-    
-    {showCreateTriple && (
-      <CreateTripleFlow
-        atomData={{
-          termId: match.termId,
-          label: match.label,
-          displayLabel: match.displayLabel
-        }}
-        onClose={() => setShowCreateTriple(false)}
-      />
-    )}
-    </>
   )
 }
 
