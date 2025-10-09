@@ -4,9 +4,12 @@ import { createAtoms, eventParseAtomCreated } from '@0xintuition/protocol'
 import { uploadJSONToIPFS } from '~/util/fetch'
 import { CONFIG } from '~/constants'
 
-// SECURITY WARNING: This is for development only. Never hardcode private keys in production!
-const PRIVATE_KEY = '0xc1aaa4a40720ca39bd3af71c4cd92f4b59edbc4cb8002c01571e7affa1068587' // Add your private key here (with 0x prefix)
-const DEFAULT_STAKE_AMOUNT = parseEther('0.002') // 0.001 ETH
+// IMPORTANT: Private key configuration
+// For development: Set PRIVATE_KEY to your development wallet private key
+// For production: This service should be disabled. User wallets should be used instead.
+// NEVER commit private keys to source control
+const PRIVATE_KEY = null as string | null // Configure in local development environment only
+const DEFAULT_STAKE_AMOUNT = parseEther('0.002') // 0.002 ETH
 
 const { ETH_RPC_URL, CHAIN_CONFIG, I8N_CONTRACT_ADDRESS } = CONFIG
 
