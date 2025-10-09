@@ -4,7 +4,6 @@
  */
 
 import { sendToBackground } from "@plasmohq/messaging"
-import { getTwitterApiClient } from './twitter-api-client'
 import type { TweetData } from '../types/messages'
 
 export class TwitterMouseTracker {
@@ -14,7 +13,6 @@ export class TwitterMouseTracker {
   private pendingTweetData: TweetData | null = null
   private collectedUsernames: Set<string> = new Set()
   private atomCreationTimer: number | null = null
-  private twitterApi = getTwitterApiClient()
   private scanDebounceTimer: number | null = null
   private detectedUsernames: Set<string> = new Set()
 
