@@ -1,0 +1,9 @@
+{
+  "displayName": "Intuition Browser Extension",
+  "version": "1.0.0",
+  "description": "Monitor browsing activity for Intuition-based insights and interact with Intuition smart contracts",
+  "manifest": {
+    "short_name": "Intuition",
+    "version_name": "1.0.0 Production"
+  }
+}

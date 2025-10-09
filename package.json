@@ -10,10 +10,10 @@
     "build": "plasmo build",
     "package": "plasmo package",
     "build:dev": "plasmo build --env=development",
-    "build:prod": "plasmo build --env=production",
-    "build:beta": "plasmo build --env=staging",
-    "package:beta": "npm run build:beta && plasmo package",
-    "package:prod": "npm run build:prod && plasmo package"
+    "build:beta": "./scripts/build-with-env.sh beta build",
+    "build:prod": "./scripts/build-with-env.sh prod build",
+    "package:beta": "./scripts/build-with-env.sh beta package",
+    "package:prod": "./scripts/build-with-env.sh prod package"
   },
   "dependencies": {
     "@0xintuition/protocol": "2.0.0-alpha.2",
